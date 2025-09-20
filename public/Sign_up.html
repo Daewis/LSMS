@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="/output.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Your existing styles here */
+        body {
+            background-image: url('/images/Sign_up.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        .file-upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .file-upload-area:hover {
+            border-color: #a78bfa;
+        }
+        .file-upload-area input[type="file"] {
+            display: none;
+        }
+        .file-upload-area .upload-icon {
+            color: #d1d5db;
+            margin: 0 auto 0.5rem;
+        }
+        .file-upload-area .upload-text {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        .file-upload-area .upload-link {
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        .file-upload-area .upload-hint {
+            color: #9ca3af;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            min-width: 250px;
+        }
+        .message-box.error {
+            background-color: #f44336;
+        }
+        .message-box.show {
+            opacity: 1;
+        }
+        .file-name-display {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #4a5568;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center">
+
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden max-w-lg w-full mx-auto my-8">
+
+        <div class="w-full p-8 lg:p-12 flex flex-col justify-center">
+            <div class="flex items-center mb-6">
+                <svg class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <h2 class="text-3xl font-extrabold text-gray-900 mb-2">Sign up for your account</h2>
+            <p class="text-sm text-gray-600 mb-8">
+                Already a member? <a href="sign_in.html" class="font-medium text-indigo-600 hover:text-indigo-500">Login here.</a>
+            </p>
+
+            <form id="signup-form" class="space-y-6" action="/auth/register" method="POST" enctype="multipart/form-data">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="first-name" class="block text-sm font-medium text-gray-700">First Name</label>
+                        <input id="first-name" name="first_name" type="text" autocomplete="given-name" placeholder="John" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="middle-name" class="block text-sm font-medium text-gray-700">Middle Name</label>
+                        <input id="middle-name" name="middle_name" type="text" autocomplete="additional-name" placeholder="A." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label for="last-name" class="block text-sm font-medium text-gray-700">Last Name</label>
+                    <input id="last-name" name="last_name" type="text" autocomplete="family-name" placeholder="Doe" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label for="matric-number" class="block text-sm font-medium text-gray-700">Matric Number</label>
+                    <input id="matric-number" name="matric_number" type="text" placeholder="123456789" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="institution" class="block text-sm font-medium text-gray-700">Institution</label>
+                    <input id="institution" name="institution" type="text" placeholder="University Name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label for="phone-number" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input id="phone-number" name="phone_number" type="tel" autocomplete="tel" placeholder="+1234567890" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="email-address" class="block text-sm font-medium text-gray-700">Email address</label>
+                    <input id="email-address" name="email_address" type="email" autocomplete="email" placeholder="you@example.com" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+
+                <div class="relative">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <input id="password" name="password" type="password" placeholder="••••••••" required
+                            class="block w-full pr-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <button type="button" id="togglePassword"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none">
+                            <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.697-4.362m3.295-2.121A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.969 9.969 0 01-4.132 5.225M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <p id="passwordStrength" class="mt-1 text-xs"></p>
+
+                <div class="relative mt-4">
+                    <label for="confirm-password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                    <div class="mt-1 relative">
+                        <input id="confirm-password" name="confirm_password" type="password" placeholder="••••••••" required
+                            class="block w-full pr-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <button type="button" id="toggleConfirmPassword"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none">
+                            <svg id="eyeOpenConfirm" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <svg id="eyeClosedConfirm" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.697-4.362m3.295-2.121A9.969 9.969 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.969 9.969 0 01-4.132 5.225M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <p id="confirmMessage" class="mt-1 text-xs"></p>
+
+                <div class="col-span-full">
+                    <label for="user-image-input" class="block text-sm font-medium text-gray-700 mb-2">Upload User Image</label>
+                    <div class="file-upload-area flex flex-col items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image upload-icon">
+                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                            <circle cx="9" cy="9" r="2" />
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                        <div class="upload-text">
+                            <label for="user-image-input" class="upload-link">Upload a file</label>
+                            <p class="inline pl-1">or drag and drop</p>
+                        </div>
+                        <p class="upload-hint">PNG, JPG, GIF up to 5MB</p>
+                        <input id="user-image-input" name="user_image" type="file" accept="image/*" />
+                    </div>
+                    <div id="user-image-file-name" class="file-name-display"></div>
+                </div>
+
+                <div class="col-span-full">
+                    <label for="acceptance-letter-input" class="block text-sm font-medium text-gray-700 mb-2">Upload Acceptance Letter</label>
+                    <div class="file-upload-area flex flex-col items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text upload-icon">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L15.5 2Z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <path d="M10 12H8" />
+                            <path d="M16 12h-2" />
+                            <path d="M16 16h-2" />
+                            <path d="M10 16H8" />
+                        </svg>
+                        <div class="upload-text">
+                            <label for="acceptance-letter-input" class="upload-link">Upload a file</label>
+                            <p class="inline pl-1">or drag and drop</p>
+                        </div>
+                        <p class="upload-hint">PDF, DOC, DOCX up to 10MB</p>
+                        <input id="acceptance-letter-input" name="acceptance_letter" type="file" accept=".pdf,.doc,.docx" />
+                    </div>
+                    <div id="acceptance-letter-file-name" class="file-name-display"></div>
+                </div>
+
+                <div class="flex items-center">
+                    <input id="terms" name="terms" type="checkbox" required class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="terms" class="ml-2 block text-sm text-gray-900">
+                        I accept the <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">Terms of Use & Privacy Policy.</a>
+                    </label>
+                </div>
+
+                <div>
+                    <button type="submit"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Sign Up
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <script type="module" src="/script.js"></script>
+</body>
+</html>

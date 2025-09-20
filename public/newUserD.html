@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for SVG inclusion -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/output.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2c2c3e; /* Darker track for sidebar */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+        /* Custom styles for the file input to ensure consistent appearance */
+        input[type="file"]::file-selector-button {
+            @apply mr-4 py-2 px-4 rounded-full border-0 text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer transition duration-150 ease-in-out;
+        }
+        /* Add styles for a spinning loader */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Message box styles */
+        .message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            opacity: 0;
+            transform: translateY(-20px);
+            z-index: 1000;
+        }
+        .message-box.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="flex h-screen bg-gray-100 font-sans antialiased">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-gray-200 flex flex-col shadow-lg">
+        <div class="flex items-center justify-center h-16 border-b border-gray-700 px-4">
+            <!-- Logo/Brand placeholder -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles text-purple-400 mr-2">
+                <path d="M10 13v7l4-7h6l-9 7 3 4-8-7 4-7H3l9 7Z"/>
+            </svg>
+            <span class="text-xl font-semibold text-white">YourApp</span>
+        </div>
+
+        <nav class="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
+            <a href="#" id="dashboardLink" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard mr-3">
+                    <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+                </svg>
+                Dashboard
+            </a>
+            <!-- Custom Sidebar Items -->
+            <a href="#" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucude-clipboard-check mr-3">
+                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>
+                </svg>
+                Mark Attendance
+            </a>
+            <a href="#" id="logbookReportLink" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-text mr-3">
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/>
+                </svg>
+                Logbook Report
+            </a>
+            <a href="#" id="complaintSuggestionLink" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-warning mr-3">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M10 10v3"/><path d="M10 7h.01"/>
+                </svg>
+                Complaint & Suggestion
+            </a>
+            <a href="#" id="uploadProjectLink" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-cloud mr-3">
+                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/>
+                </svg>
+                Upload Project
+            </a>
+            <a href="#" id="editDetailsLink" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit mr-3">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/>
+                </svg>
+                Edit Details
+            </a>
+            <a href="#" id="requestPermissionLink" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-plus mr-3">
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15h6"/>
+                </svg>
+                Request Permission
+            </a>
+            <a href="#" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square mr-3">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Live Chat
+            </a>
+        </nav>
+
+        <div class="mt-auto px-2 py-4 border-t border-gray-700">
+            <a href="#" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings mr-3">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.78 1.28a2 2 0 0 0 .73 2.73l.04.04a2 2 0 0 1 0 2.83l-.04.04a2 2 0 0 0-.73 2.73l.78 1.28a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.78-1.28a2 2 0 0 0-.73-2.73l-.04-.04a2 2 0 0 1 0-2.83l.04-.04a2 2 0 0 0 .73-2.73l-.78-1.28a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                Settings
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col">
+        <!-- Top Navigation Bar -->
+        <header class="flex items-center justify-between h-16 bg-white border-b border-gray-200 px-6 shadow-md">
+            <div class="flex items-center">
+                <!-- Search Bar -->
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search text-gray-400">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                        </svg>
+                    </span>
+                    <input type="text" placeholder="Search..." class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <!-- Notification Bell -->
+                <button class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                    </svg>
+                </button>
+
+               <!-- User Profile Dropdown -->
+<div class="relative">
+  <button id="profileButton" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none" aria-haspopup="menu" aria-expanded="false">
+    <img id="profile-image" class="h-10 w-10 rounded-full object-cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="User Profile">
+    <span id="user-profile-name">Guest</span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down">
+      <path d="m6 9 6 6 6-6"/>
+    </svg>
+  </button>
+
+  <!-- Dropdown Content -->
+  <div id="profileDropdown"
+       class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 opacity-0 invisible transform origin-top-right scale-95 transition-all duration-200 z-10">
+    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Your profile</a>
+    <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign out</a>
+  </div>
+</div>
+
+        </header>
+
+       <!-- Main Content Panel -->
+<main id="main-content-panel" class="flex-1 p-6 overflow-y-auto">
+    <!-- Dashboard Content -->
+    <div id="dashboardContent" class="space-y-6 hidden">
+        
+        <!-- Skeleton Loader (shows first, hides when real data loads) -->
+        <div id="dashboardSkeleton" class="space-y-6 animate-pulse">
+            <div class="h-10 w-48 bg-gray-200 rounded"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="h-6 w-32 bg-gray-200 rounded"></div>
+                    <div class="h-10 w-16 bg-gray-200 rounded mt-4"></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="h-6 w-32 bg-gray-200 rounded"></div>
+                    <div class="h-10 w-16 bg-gray-200 rounded mt-4"></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="h-6 w-32 bg-gray-200 rounded"></div>
+                    <div class="h-10 w-16 bg-gray-200 rounded mt-4"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <div class="h-6 w-40 bg-gray-200 rounded mb-4"></div>
+                <div class="space-y-2">
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+                    <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <div class="h-8 w-40 bg-gray-200 rounded mb-4"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="h-12 bg-gray-200 rounded"></div>
+                    <div class="h-12 bg-gray-200 rounded"></div>
+                    <div class="h-12 bg-gray-200 rounded"></div>
+                    <div class="h-12 bg-gray-200 rounded"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actual Dashboard Stats (hidden until data loads) -->
+        <div id="dashboardStats" class="space-y-6 hidden">
+            <!-- Overview Counters -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="text-lg font-semibold">Total Reports</h3>
+                    <span id="total-reports-count" class="text-2xl font-bold">0</span>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="text-lg font-semibold">Pending Leave</h3>
+                    <span id="pending-leave-count" class="text-2xl font-bold">0</span>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="text-lg font-semibold">Projects Uploaded</h3>
+                    <span id="projects-uploaded-count" class="text-2xl font-bold">0</span>
+                </div>
+            </div>
+
+            <!-- Latest Activities -->
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h3 class="text-lg font-semibold mb-4">Latest Activities</h3>
+                <ul id="latest-activities-list" class="space-y-2"></ul>
+            </div>
+
+            <!-- Quick Actions Section (restored) -->
+            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="markAttendanceBtn" class="bg-indigo-500 text-white py-3 px-4 rounded-md hover:bg-indigo-600 transition duration-200 text-lg font-medium shadow-sm">
+                        Mark Today's Attendance
+                    </button>
+                    <button id="submitReportBtn" class="bg-green-500 text-white py-3 px-4 rounded-md hover:bg-green-600 transition duration-200 text-lg font-medium shadow-sm">
+                        Submit New Report
+                    </button>
+                    <button id="requestLeaveBtn" class="bg-yellow-500 text-white py-3 px-4 rounded-md hover:bg-yellow-600 transition duration-200 text-lg font-medium shadow-sm">
+                        Request New Leave
+                    </button>
+                    <button id="viewComplaintsBtn" class="bg-red-500 text-white py-3 px-4 rounded-md hover:bg-red-600 transition duration-200 text-lg font-medium shadow-sm">
+                        View Complaints
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+            <!-- Weekly Logbook Report Form - Initially hidden -->
+            <div id="logbookReportContainer" class="hidden min-h-screen flex items-center justify-center">
+                <div id="report-form-wrapper" class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-3xl border border-gray-200">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Weekly Report</h2>
+
+                    <div id="message-container" class="hidden px-4 py-3 rounded-md relative mb-4" role="alert">
+                        <span id="message-text" class="block sm:inline"></span>
+                    </div>
+
+                    <form id="weeklyReportForm" class="space-y-6">
+                        <!-- User Info (Pre-populated) -->
+                        <div class="flex items-center space-x-4 mb-6">
+                            <img id="report-user-avatar" class="h-16 w-16 rounded-full object-cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Complaint Avatar">
+                            <div>
+                                <p id="report-user-name" class="text-xl font-semibold text-gray-800"></p>
+                                <p id="report-user-email" class="text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Week Selection -->
+                        <div>
+                            <label for="selectedWeekDate" class="block text-sm font-medium text-gray-700 mb-1">
+                                Select a Date in the Week <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                id="selectedWeekDate"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                required
+                            />
+                            <p id="week-range-display" class="mt-2 text-sm text-gray-600 hidden">
+                                <span class="font-semibold">Week of:</span> <span id="week-range-text"></span>
+                            </p>
+                        </div>
+
+                        <!-- Daily Report Textareas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="day-report-field">
+                                <label for="monday" class="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                                    Monday Report
+                                </label>
+                                <textarea
+                                    id="monday"
+                                    rows="4"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                    placeholder="Write your report for Monday..."
+                                ></textarea>
+                            </div>
+                            <div class="day-report-field">
+                                <label for="tuesday" class="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                                    Tuesday Report
+                                </label>
+                                <textarea
+                                    id="tuesday"
+                                    rows="4"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                    placeholder="Write your report for Tuesday..."
+                                ></textarea>
+                            </div>
+                            <div class="day-report-field">
+                                <label for="wednesday" class="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                                    Wednesday Report
+                                </label>
+                                <textarea
+                                    id="wednesday"
+                                    rows="4"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                    placeholder="Write your report for Wednesday..."
+                                ></textarea>
+                            </div>
+                            <div class="day-report-field">
+                                <label for="thursday" class="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                                    Thursday Report
+                                </label>
+                                <textarea
+                                    id="thursday"
+                                    rows="4"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                    placeholder="Write your report for Thursday..."
+                                ></textarea>
+                            </div>
+                            <div class="day-report-field">
+                                <label for="friday" class="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                                    Friday Report
+                                </label>
+                                <textarea
+                                    id="friday"
+                                    rows="4"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                    placeholder="Write your report for Friday..."
+                                ></textarea>
+                            </div>
+                            <div class="day-report-field">
+                                <label for="saturday" class="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                                    Saturday Report
+                                </label>
+                                <textarea
+                                    id="saturday"
+                                    rows="4"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                    placeholder="Write your report for Saturday..."
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <!-- File Input -->
+                        <div>
+                            <label for="fileAttachment" class="block text-sm font-medium text-gray-700 mb-1">
+                                Attach File (Optional)
+                            </label>
+                            <input
+                                type="file"
+                                id="fileAttachment"
+                                name="fileAttachment"
+                                class="mt-1 block w-full text-sm text-gray-500"
+                            />
+                            <p id="selected-file-name" class="mt-2 text-sm text-gray-600 hidden">
+                                Selected file: <span class="font-semibold"></span>
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">Note: Actual file will be sent with this version.</p>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button
+                            type="submit"
+                            id="submitButton"
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Submit Weekly Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Complaint & Suggestion Form - Initially hidden -->
+            <div id="complaintSuggestionContainer" class="hidden min-h-screen flex items-center justify-center">
+                <div class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-3xl border border-gray-200">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Complaint & Suggestion</h2>
+
+                    <div id="complaint-message-container" class="hidden px-4 py-3 rounded-md relative mb-4" role="alert">
+                        <span id="complaint-message-text" class="block sm:inline"></span>
+                    </div>
+
+                    <form id="complaintSuggestionForm" class="space-y-6">
+                        <!-- User Info (Pre-populated) -->
+                        <div class="flex items-center space-x-4 mb-6">
+                            <img id="complaint-user-avatar" class="h-16 w-16 rounded-full object-cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Complaint Avatar">
+                            <div>
+                                <p id="complaint-user-name" class="text-xl font-semibold text-gray-800"></p>
+                                <p id="complaint-user-email" class="text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+
+                        <!-- Subject -->
+                        <div>
+                            <label for="complaintSubject" class="block text-sm font-medium text-gray-700 mb-1">
+                                Subject <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="complaintSubject"
+                                name="subject"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                required
+                                placeholder="e.g., Issue with attendance marking"
+                            />
+                        </div>
+
+                        <!-- Message Text -->
+                        <div>
+                            <label for="complaintMessage" class="block text-sm font-medium text-gray-700 mb-1">
+                                Message Text <span class="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                id="complaintMessage"
+                                name="message"
+                                rows="6"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                required
+                                placeholder="Please describe your complaint or suggestion here..."
+                            ></textarea>
+                        </div>
+
+                        <!-- Complaint Details Section (Optional) -->
+                        <div class="border-t border-gray-200 pt-6 mt-6">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Complaint Details (Optional)</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="incidentDateTime" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Incident Date & Time
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        id="incidentDateTime"
+                                        name="incidentDateTime"
+                                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                    />
+                                </div>
+                                <div>
+                                    <label for="incidentLocation" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Incident Location
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="incidentLocation"
+                                        name="incidentLocation"
+                                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                        placeholder="e.g., Lab 2, Main Building"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <label for="complaintDetails" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Complaint Details
+                                </label>
+                                <textarea
+                                    id="complaintDetails"
+                                    name="complaintDetails"
+                                    rows="4"
+                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                    placeholder="Provide more specific details about the complaint..."
+                                ></textarea>
+                            </div>
+
+                            <div class="mt-6">
+                                <h4 class="text-base font-medium text-gray-700 mb-2">Incident Participants/Witnesses</h4>
+                                <div id="participants-container" class="space-y-4">
+                                    <!-- Dynamic participant rows will be added here -->
+                                </div>
+                                <button type="button" id="add-participant-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus mr-2">
+                                        <path d="M12 5v14"/><path d="M5 12h14"/>
+                                    </svg>
+                                    Add New Record
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button
+                            type="submit"
+                            id="submitComplaintButton"
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span id="complaint-submit-text">Send Complaint/Suggestion</span>
+                            <span id="complaint-submit-loader" class="loader ml-2 hidden"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Upload Project Section - Initially hidden -->
+            <div id="uploadProjectContainer" class="hidden min-h-screen flex items-center justify-center">
+                <div class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-3xl border border-gray-200">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Upload Asset Files</h2>
+                    <p class="text-gray-600 text-center mb-8">Here you can manage your files & assets and other attachments.</p>
+
+                    <div id="upload-message-container" class="hidden px-4 py-3 rounded-md relative mb-4" role="alert">
+                        <span id="upload-message-text" class="block sm:inline"></span>
+                    </div>
+
+                    <!-- Project Metadata Fields -->
+                    <div class="mb-6 space-y-4">
+                        <div>
+                            <label for="uploadProjectName" class="block text-sm font-medium text-gray-700 mb-1">Project Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="uploadProjectName" placeholder="e.g., Q3 Marketing Report" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="uploadProjectDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                            <textarea id="uploadProjectDescription" rows="3" placeholder="Briefly describe the project or file..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 resize-y"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- File Drop Area -->
+                    <div id="drop-area" class="border-2 border-dashed border-purple-300 rounded-lg p-6 text-center cursor-pointer hover:border-purple-500 transition-colors duration-200 mb-6">
+                        <input type="file" id="projectFile" class="hidden" multiple accept=".svg,.jpg,.jpeg,.png,.pdf">
+                        <label for="projectFile" class="flex flex-col items-center justify-center h-48">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-up text-purple-400 mb-3">
+                                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L15 2Z"/><path d="M14 2v6h6"/><path d="M12 16v-6"/><path d="m9 13 3-3 3 3"/>
+                            </svg>
+                            <p class="text-lg text-gray-700 font-semibold">Click here to upload your file or drag.</p>
+                            <p class="text-sm text-gray-500">Supported Format: SVG, JPG, PNG, PDF (10mb each)</p>
+                        </label>
+                    </div>
+
+                    <!-- Uploaded Files List -->
+                    <div id="uploaded-files-list" class="space-y-4">
+                        <!-- Uploaded files will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Leave/Permission Section - Initially hidden -->
+            <div id="requestPermissionContainer" class="hidden min-h-screen flex items-center justify-center">
+                <div class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-2xl border border-gray-200">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Request Work Leave/Permission</h2>
+
+                    <div id="permission-message-container" class="hidden px-4 py-3 rounded-md relative mb-4" role="alert">
+                        <span id="permission-message-text" class="block sm:inline"></span>
+                    </div>
+
+                    <form id="leaveRequestForm" class="space-y-6">
+                        <!-- User Info (Pre-populated) -->
+                        <div class="flex items-center space-x-4 mb-6">
+                            <img id="leave-user-avatar" class="h-16 w-16 rounded-full object-cover"  src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Leave user Avatar">
+                            <div>
+                                <p id="leave-user-name" class="text-xl font-semibold text-gray-800"></p>
+                                <p id="leave-user-email" class="text-sm text-gray-600"></p>
+                            </div>
+                        </div>
+
+                        <!-- Leave Type -->
+                        <div>
+                            <label for="leaveType" class="block text-sm font-medium text-gray-700 mb-1">
+                                Type of Leave <span class="text-red-500">*</span>
+                            </label>
+                            <select
+                                id="leaveType"
+                                name="leaveType"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out bg-white"
+                                required
+                            >
+                                <option value="">Select Leave Type</option>
+                                <option value="Sick Leave">Sick Leave</option>
+                                <option value="Vacation">Vacation</option>
+                                <option value="Personal Leave">Personal Leave</option>
+                                <option value="Study Leave">Study Leave</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Start Date -->
+                        <div>
+                            <label for="leaveStartDate" class="block text-sm font-medium text-gray-700 mb-1">
+                                Start Date <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                id="leaveStartDate"
+                                name="leaveStartDate"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                required
+                            />
+                        </div>
+
+                        <!-- End Date -->
+                        <div>
+                            <label for="leaveEndDate" class="block text-sm font-medium text-gray-700 mb-1">
+                                End Date <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                id="leaveEndDate"
+                                name="leaveEndDate"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                required
+                            />
+                        </div>
+
+                        <!-- Reason/Details -->
+                        <div>
+                            <label for="leaveReason" class="block text-sm font-medium text-gray-700 mb-1">
+                                Reason/Details <span class="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                id="leaveReason"
+                                name="leaveReason"
+                                rows="5"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out resize-y"
+                                required
+                                placeholder="Explain your reason for the leave..."
+                            ></textarea>
+                        </div>
+
+                        <!-- Attachment (Optional) -->
+                        <div>
+                            <label for="leaveAttachment" class="block text-sm font-medium text-gray-700 mb-1">
+                                Attach Supporting Document (Optional)
+                            </label>
+                            <input
+                                type="file"
+                                id="leaveAttachment"
+                                name="leaveAttachment"
+                                class="mt-1 block w-full text-sm text-gray-500"
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            />
+                            <p class="mt-1 text-xs text-gray-500">Max file size: 5MB. Supported: PDF, DOCX, Images.</p>
+                        </div>
+
+                        <!-- Permission Note Section -->
+                        <div class="border-t border-gray-200 pt-6 mt-6">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Important Note</h3>
+                            <p class="text-sm text-gray-600 leading-relaxed">
+                                Please ensure all information is accurate. Your request will be reviewed by your supervisor.
+                                You will be notified of the status via email.
+                            </p>
+                        </div>
+
+                        <div class="mt-8 flex justify-end space-x-4">
+                            <button type="reset" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors duration-200">Reset</button>
+                            <button
+                                type="submit"
+                                id="submitLeaveRequestBtn"
+                                class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span id="leave-submit-text">Submit Leave Request</span>
+                                <span id="leave-submit-loader" class="loader ml-2 hidden"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Edit Details Section - Initially hidden -->
+            <div id="editDetailsContainer" class="hidden min-h-screen flex items-center justify-center">
+                <div class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-3xl border border-gray-200">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Account Settings</h2>
+
+                    <div class="space-y-8">
+                        <!-- My Profile Section -->
+                        <div class="flex items-center space-x-6 mb-6">
+    <img id="edit-profile-image" class="h-24 w-24 rounded-full object-cover shadow-md"
+          src="/users/profile-picture/me" alt="User Profile">
+
+    <!-- Hidden file input -->
+    <input type="file" id="profileImageInput" accept="image/*" class="hidden">
+
+    <div>
+        <button type="button" id="changeImageBtn"
+            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 mr-2">
+            Change image
+        </button>
+        <button type="button" id="removeImageBtn"
+            class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200">
+            Remove image
+        </button>
+        <p class="text-sm text-gray-500 mt-2">We support PNGs, JPEGs and GIFs under 10MB.</p>
+    </div>
+</div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label for="editFirstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                    <input type="text" id="editFirstName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="editMiddleName" class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                                    <input type="text" id="editMiddleName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="editLastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                    <input type="text" id="editLastName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                            <div class="mt-6 flex justify-end">
+                                <button id="saveProfileBtn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">Save Profile Changes</button>
+                            </div>
+                        </div>
+
+                        <!-- Account Security Section -->
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Account Security</h3>
+                            <div class="space-y-4">
+                                <!-- Email Section -->
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                    <div class="flex-grow">
+                                        <label for="editEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                        <input type="email" id="editEmail" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 focus:outline-none" readonly>
+                                    </div>
+                                    <div class="mt-2 sm:mt-0 sm:ml-4 flex-shrink-0">
+                                        <button id="changeEmailBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200">Change email</button>
+                                        <button id="saveEmailBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 hidden ml-2">Save Email</button>
+                                    </div>
+                                </div>
+                                <!-- Password Section -->
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                    <div class="flex-grow">
+                                        <label for="editPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                        <input type="password" id="editPassword" value="********" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 focus:outline-none" readonly>
+                                    </div>
+                                    <div class="mt-2 sm:mt-0 sm:ml-4 flex-shrink-0">
+                                        <button id="changePasswordBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-200">Change password</button>
+                                    </div>
+                                </div>
+                                <!-- New password fields (initially hidden) -->
+                                <div id="newPasswordFields" class="space-y-4 border-t border-gray-200 pt-4 hidden">
+                                    <div>
+                                        <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                                        <input type="password" id="currentPassword" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                                        <input type="password" id="newPassword" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="confirmNewPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                                        <input type="password" id="confirmNewPassword" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div class="flex justify-end">
+                                        <button id="savePasswordBtn" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">Save New Password</button>
+                                    </div>
+                                </div>
+
+                        <!-- Log out of all devices -->
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Log out of all devices</h3>
+                            <p class="text-gray-700 mb-4">Log out of all other active sessions on other devices besides this one.</p>
+                            <button class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">Log out</button>
+                        </div>
+
+                        <!-- Delete My Account -->
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Delete My Account</h3>
+                            <p class="text-gray-700 mb-4">Permanently delete the account and remove access from all workspaces.</p>
+                            <button class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200">Delete Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {            
+            const dashboardLink = document.getElementById('dashboardLink');
+            const logbookReportLink = document.getElementById('logbookReportLink');
+            const complaintSuggestionLink = document.getElementById('complaintSuggestionLink');
+            const uploadProjectLink = document.getElementById('uploadProjectLink');
+            const editDetailsLink = document.getElementById('editDetailsLink'); 
+            const requestPermissionLink = document.getElementById('requestPermissionLink'); // New request permission link
+
+            const dashboardContent = document.getElementById('dashboardContent'); 
+            const logbookReportContainer = document.getElementById('logbookReportContainer');
+            const complaintSuggestionContainer = document.getElementById('complaintSuggestionContainer');
+            const uploadProjectContainer = document.getElementById('uploadProjectContainer');
+            const editDetailsContainer = document.getElementById('editDetailsContainer'); 
+            const requestPermissionContainer = document.getElementById('requestPermissionContainer'); // New request permission container
+            const defaultDashboard = document.getElementById('default-dashboard');
+            const userProfileName = document.getElementById('user-profile-name');
+            const logoutLink = document.getElementById('logout-link');
+
+
+            // Dashboard specific elements
+            const dashboardUserName = document.getElementById('dashboard-user-name');
+            const totalReportsCount = document.getElementById('total-reports-count');
+            const pendingLeaveCount = document.getElementById('pending-leave-count');
+            const projectsUploadedCount = document.getElementById('projects-uploaded-count');
+            const latestActivitiesList = document.getElementById('latest-activities-list');
+
+            // Quick Action Buttons (New)
+            const markAttendanceBtn = document.getElementById('markAttendanceBtn');
+            const submitReportBtn = document.getElementById('submitReportBtn');
+            const requestLeaveBtn = document.getElementById('requestLeaveBtn');
+            const viewComplaintsBtn = document.getElementById('viewComplaintsBtn');
+
+
+            // Logbook Report Form Elements
+            const weeklyReportForm = document.getElementById('weeklyReportForm');
+            const reportUserAvatar = document.getElementById('report-user-avatar');
+            const reportUserName = document.getElementById('report-user-name');
+            const reportUserEmail = document.getElementById('report-user-email'); 
+            const selectedWeekDateInput = document.getElementById('selectedWeekDate');
+            const weekRangeDisplay = document.getElementById('week-range-display');
+            const weekRangeText = document.getElementById('week-range-text');
+            const fileAttachmentInput = document.getElementById('fileAttachment');
+            const selectedFileNameDisplay = document.getElementById('selected-file-name');
+            const submitButton = document.getElementById('submitButton');
+            const submitText = document.getElementById('submit-text'); 
+            const submitLoader = document.getElementById('submit-loader'); 
+            const messageContainer = document.getElementById('message-container');
+            const messageText = document.getElementById('message-text');
+
+            const dayTextareas = {
+                monday: document.getElementById('monday'),
+                tuesday: document.getElementById('tuesday'),
+                wednesday: document.getElementById('wednesday'),
+                thursday: document.getElementById('thursday'),
+                friday: document.getElementById('friday'),
+                saturday: document.getElementById('saturday'),
+            };
+
+            // Complaint & Suggestion Form Elements
+            const complaintSuggestionForm = document.getElementById('complaintSuggestionForm');
+            const complaintUserAvatar = document.getElementById('complaint-user-avatar');
+            const complaintUserName = document.getElementById('complaint-user-name');
+            const complaintUserEmail = document.getElementById('complaint-user-email');
+            const complaintSubjectInput = document.getElementById('complaintSubject');
+            const complaintMessageInput = document.getElementById('complaintMessage');
+            const incidentDateTimeInput = document.getElementById('incidentDateTime');
+            const incidentLocationInput = document.getElementById('incidentLocation');
+            const complaintDetailsTextarea = document.getElementById('complaintDetails');
+            const participantsContainer = document.getElementById('participants-container');
+            const addParticipantBtn = document.getElementById('add-participant-btn');
+            const submitComplaintButton = document.getElementById('submitComplaintButton');
+            const complaintSubmitText = document.getElementById('complaint-submit-text');
+            const complaintSubmitLoader = document.getElementById('complaint-submit-loader');
+            const complaintMessageContainer = document.getElementById('complaint-message-container');
+            const complaintMessageText = document.getElementById('complaint-message-text');
+
+            // Upload Project Elements
+            const dropArea = document.getElementById('drop-area');
+            const projectFileInput = document.getElementById('projectFile');
+            const uploadedFilesList = document.getElementById('uploaded-files-list');
+            const uploadMessageContainer = document.getElementById('upload-message-container');
+            const uploadMessageText = document.getElementById('upload-message-text');
+            const uploadProjectNameInput = document.getElementById('uploadProjectName');
+            const uploadProjectDescriptionInput = document.getElementById('uploadProjectDescription');
+
+            // Request Leave/Permission Elements (UPDATED)
+            const leaveRequestForm = document.getElementById('leaveRequestForm');
+            const leaveUserAvatar = document.getElementById('leave-user-avatar');
+            const leaveUserName = document.getElementById('leave-user-name');
+            const leaveUserEmail = document.getElementById('leave-user-email');
+            const leaveTypeInput = document.getElementById('leaveType');
+            const leaveStartDateInput = document.getElementById('leaveStartDate');
+            const leaveEndDateInput = document.getElementById('leaveEndDate');
+            const leaveReasonInput = document.getElementById('leaveReason');
+            const leaveAttachmentInput = document.getElementById('leaveAttachment');
+            const submitLeaveRequestBtn = document.getElementById('submitLeaveRequestBtn');
+            const leaveSubmitText = document.getElementById('leave-submit-text');
+            const leaveSubmitLoader = document.getElementById('leave-submit-loader');
+            const permissionMessageContainer = document.getElementById('permission-message-container'); // Reused for leave messages
+            const permissionMessageText = document.getElementById('permission-message-text'); // Reused for leave messages
+
+
+            // Edit Details Form Elements 
+            const editProfileImage = document.getElementById('edit-profile-image');
+            const editFirstNameInput = document.getElementById('editFirstName');
+            const editMiddleNameInput = document.getElementById('editMiddleName'); 
+            const editLastNameInput = document.getElementById('editLastName');
+            const saveProfileBtn = document.getElementById('saveProfileBtn'); 
+
+            const editEmailInput = document.getElementById('editEmail');
+            const changeEmailBtn = document.getElementById('changeEmailBtn');
+            //const removeImageBtn = document.getElementById("removeImageBtn");
+            //const saveEmailBtn = document.getElementById('saveEmailBtn'); 
+            //const fileInput = document.getElementById("profileImageInput");
+
+            const imgIds = [
+            "profile-image",
+            "report-user-avatar",
+            "complaint-user-avatar",
+            "edit-profile-image",
+            "leave-user-avatar"
+            ];
+
+
+            const editPasswordInput = document.getElementById('editPassword');
+            const changePasswordBtn = document.getElementById('changePasswordBtn');
+            const newPasswordFields = document.getElementById('newPasswordFields'); 
+            const currentPasswordInput = document.getElementById('currentPassword');
+            const newPasswordInput = document.getElementById('newPassword');
+            const confirmNewPasswordInput = document.getElementById('confirmNewPassword');
+            const savePasswordBtn = document.getElementById('savePasswordBtn'); 
+
+            // Profile image elements
+           // const profileImageElement = document.getElementById('profile-image');
+
+
+
+        // --- USER DATA LOADING FROM SESSION ---
+        let sessionUserData = null; 
+
+            async function fetchSessionUserData() {
+
+            try {
+           const res = await fetch('/users/intern-info');
+                  if (res.status === 401) {
+                     window.location.href = '/sign_in.html';
+                     return null;
+                    }
+
+                 if (!res.ok) throw new Error("Failed to fetch session user data.");
+             const data = await res.json();
+
+                if (!data.success) throw new Error(data.message || "Invalid session user data.");
+
+            // --- Save globally ---
+        sessionUserData = data;
+
+        // --- Update profile UI (dashboard top bar) ---
+        const dashboardUserName = document.getElementById('user-profile-name');
+        const dashboardUserAvatar = document.getElementById('profile-image');
+        if (dashboardUserName) dashboardUserName.textContent = `
+        ${data.first_name} ${data.last_name}` || "Intern";
+        if (dashboardUserAvatar) {
+            dashboardUserAvatar.src = data.profile_image_url || `https://placehold.co/40x40/cccccc/ffffff?text=${(data.first_name?.[0] || 'U')}`;
+        }
+
+        // --- Update avatars and forms ---
+        const initials = ((data.first_name?.[0] || 'U') + (data.last_name?.[0] || '')).toUpperCase();
+        const fallback40 = `https://placehold.co/40x40/cccccc/ffffff?text=${initials}`;
+        const fallback64 = `https://placehold.co/64x64/cccccc/ffffff?text=${initials}`;
+        const fallback96 = `https://placehold.co/96x96/cccccc/ffffff?text=${initials}`;
+
+
+        //const profileImageElement = document.getElementById('profile-image');
+        const reportUserAvatar = document.getElementById('report-user-avatar');
+        const complaintUserAvatar = document.getElementById('complaint-user-avatar');
+        const leaveUserAvatar = document.getElementById('leave-user-avatar');
+        const editProfileImage = document.getElementById('edit-profile-image');
+
+       // if (profileImageElement) profileImageElement.src = data.profile_image_url || fallback40;
+        if (reportUserAvatar) reportUserAvatar.src = data.profile_image_url || fallback64;
+        if (complaintUserAvatar) complaintUserAvatar.src = data.profile_image_url || fallback64;
+        if (leaveUserAvatar) leaveUserAvatar.src = data.profile_image_url || fallback64;
+        if (editProfileImage) editProfileImage.src = data.profile_image_url || fallback96;
+
+
+
+        // Populate forms
+        if (document.getElementById('reportUserName')) document.getElementById('report-user-name').textContent = `${data.first_name || ''} ${data.last_name || ''}`;
+        if (document.getElementById('reportUserEmail')) document.getElementById('report-user-email').textContent = data.email || '';
+        if (document.getElementById('complaintUserName')) document.getElementById('complaint-user-name').textContent = `${data.first_name || ''} ${data.last_name || ''}`;
+        if (document.getElementById('complaintUserEmail')) document.getElementById('complaint-user-email').textContent = data.email || '';
+        if (document.getElementById('leaveUserName')) document.getElementById('leave-user-name').textContent = `${data.first_name || ''} ${data.last_name || ''}`;
+        if (document.getElementById('leaveUserEmail')) document.getElementById('leave-user-email').textContent = data.email || '';
+
+        if (document.getElementById('editFirstNameInput')) document.getElementById('editFirstName').value = data.first_name || '';
+        if (document.getElementById('editMiddleNameInput')) document.getElementById('editMiddleName').value = data.middle_name || '';
+        if (document.getElementById('editLastNameInput')) document.getElementById('editLastName').value = data.last_name || '';
+        if (document.getElementById('editEmailInput')) document.getElementById('editEmail').value = data.email || '';
+
+        console.log("Session user data loaded:", sessionUserData);
+        return data;
+
+    } catch (err) {
+        console.error("Error fetching session user data:", err);
+        return null;
+    }
+}
+
+    
+async function loadDashboard() {
+    // Show skeleton
+    document.getElementById('dashboardSkeleton').classList.remove('hidden');
+    document.getElementById('dashboardContent').classList.add('hidden');
+    document.getElementById('dashboardStats').classList.add('hidden');
+
+    const userData = await fetchSessionUserData();
+    //const userData = await loadDashboard();
+
+    if (!userData) return;
+
+    try {
+        // Fetch stats
+        const res = await fetch(`/users/dashboard/summary?userId=${userData.user_id}`);
+        if (!res.ok) throw new Error("Failed to fetch dashboard stats");
+        const stats = await res.json();
+        
+
+        document.getElementById('total-reports-count').textContent = stats.stats.total_reports ?? "0";
+        document.getElementById('pending-leave-count').textContent = stats.stats.pending_leave ?? "0";
+        document.getElementById('projects-uploaded-count').textContent = stats.stats.projects_uploaded ?? "0";
+
+        const activitiesList = document.getElementById('latest-activities-list');
+        activitiesList.innerHTML = "";
+
+        if (stats.activities && stats.activities.length > 0) {
+            stats.activities.forEach(activity => {
+                const li = document.createElement('li');
+                li.className = "flex items-center";
+                let iconSvg = `<svg ... class="lucide lucide-info text-blue-500 mr-2"></svg>`;
+                if (activity.type === "report") iconSvg = `<svg ... class="lucide lucide-check-circle text-green-500 mr-2"></svg>`;
+                if (activity.type === "leave") iconSvg = `<svg ... class="lucide lucide-hourglass text-yellow-500 mr-2"></svg>`;
+                if (activity.type === "project") iconSvg = `<svg ... class="lucide lucide-upload text-purple-500 mr-2"></svg>`;
+                li.innerHTML = `${iconSvg} ${activity.description || activity}`;
+                activitiesList.appendChild(li);
+            });
+        } else {
+            activitiesList.innerHTML = '<li class="text-gray-500 text-center">No recent activities.</li>';
+        }
+
+        // Hide skeleton, show dashboard
+        document.getElementById('dashboardSkeleton').classList.add('hidden');
+        document.getElementById('dashboardContent').classList.remove('hidden');
+document.getElementById('dashboardStats').classList.remove('hidden');
+
+
+    } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+    }
+}
+
+loadDashboard();
+
+            // Handle logout link click
+            logoutLink.addEventListener('click', async (e) => {
+                e.preventDefault(); 
+                try {
+                    const response = await fetch('/auth/logout', { 
+                        method: 'POST',
+                    });
+                    const result = await response.json();
+                    if (response.ok && result.success) {
+                        console.log('Logged out successfully.');
+                        sessionUserData = null; 
+                        window.location.href = 'sign_in.html'; 
+                    } else {
+                        console.error('Logout failed:', result.message);
+                        showMessage(`Logout failed: ${result.message || 'Please try again.'}`, true, messageContainer, messageText); 
+                    }
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                    showMessage(`An error occurred during logout: ${error.message}`, true, messageContainer, messageText); 
+                }
+            });
+
+
+            // ===== PROFILE DROPDOWN (tap/click) =====
+            const profileButton = document.getElementById('profileButton');
+            const profileDropdown = document.getElementById('profileDropdown');
+
+             //Continuation of profile toggle
+            if (profileButton && profileDropdown) {
+                const open = () => {
+                 profileDropdown.classList.remove('opacity-0', 'invisible', 'scale-95');
+                profileDropdown.classList.add('opacity-100', 'visible', 'scale-100');
+                 profileButton.setAttribute('aria-expanded', 'true');
+                 };
+
+  const close = () => {
+    profileDropdown.classList.remove('opacity-100', 'visible', 'scale-100');
+    profileDropdown.classList.add('opacity-0', 'invisible', 'scale-95');
+    profileButton.setAttribute('aria-expanded', 'false');
+  };
+
+  const toggle = () => {
+    const isOpen = profileDropdown.classList.contains('opacity-100');
+    isOpen ? close() : open();
+  };
+
+  profileButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggle();
+  });
+
+  // Prevent clicks inside the dropdown from closing it immediately
+  profileDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+  // Click outside to close
+  document.addEventListener('click', (e) => {
+    if (!profileDropdown.contains(e.target) && !profileButton.contains(e.target)) close();
+  });
+
+  // ESC to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
+  });
+
+  // ===== PROFILE IMAGE UPLOAD/REMOVE FUNCTIONALITY =====
+  const editProfileImage = document.getElementById("edit-profile-image");
+  const fileInputProfile = document.getElementById("profileImageInput");
+  const changeBtn = document.getElementById("changeImageBtn");
+  const removeBtn = document.getElementById("removeImageBtn");
+
+
+  // Change image → open file picker
+  if (changeBtn) {
+  changeBtn.addEventListener("click", () => fileInputProfile.click());
+}
+
+  // Upload & preview
+ // Upload & preview
+if (fileInputProfile) {
+  fileInputProfile.addEventListener("change", async () => {
+    const file = fileInputProfile.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File must be under 10MB.");
+      return;
+    }
+
+
+    const formData = new FormData();
+    formData.append("profileImage", file);
+
+     try {
+      const res = await fetch("/users/upload-profile-picture", {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        editProfileImage.src = `/users/profile-picture/${data.userId || "me"}?t=${Date.now()}`;
+      } else {
+        alert("Failed to upload image.");
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Error uploading image.");
+    }
+  });
+
+  // Remove image
+if (removeBtn) {
+  removeBtn.addEventListener("click", async () => {
+    if (!confirm("Remove your profile picture?")) return;
+
+    try {
+      const res = await fetch("/users/remove-profile-picture", {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        editProfileImage.src = `/users/profile-picture/${data.userId || "me"}?t=${Date.now()}`;
+      } else {
+        alert("Failed to remove image.");
+      }
+    } catch (err) {
+      console.error("Remove error:", err);
+      alert("Error removing image.");
+    }
+  });
+}
+}
+ }
+
+            // --- UI LOGIC ---
+            const showPanel = (panelId) => {
+                const panels = [dashboardContent, logbookReportContainer, complaintSuggestionContainer, uploadProjectContainer, editDetailsContainer, requestPermissionContainer];
+                panels.forEach(panel => {
+                    if (panel) {
+                        if (panel.id === panelId) {
+                            panel.classList.remove('hidden');
+                        } else {
+                            panel.classList.add('hidden');
+                        }
+                    }
+                });
+            };
+
+            //Helper Function to prefill forms with session user data
+       
+   function prefillLogbookForm(user) {
+  reportUserName.textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+  reportUserEmail.textContent = user.email || '';
+}
+
+function prefillComplaintForm(user) {
+  complaintUserName.textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+  complaintUserEmail.textContent = user.email || '';
+}
+
+function prefillEditDetails(user) {
+    editFirstNameInput.value = user.first_name || '';
+    editMiddleNameInput.value = user.middle_name || '';
+    editLastNameInput.value = user.last_name || '';
+    editEmailInput.value = user.email || '';
+}
+
+function prefillPermissionForm(user) {
+    leaveUserName.textContent =`${user.first_name || ''} ${user.last_name || ''}`.trim();
+    leaveUserEmail.textContent = user.email || '';
+}
+
+
+            // --- SIDEBAR NAVIGATION ---
+
+dashboardLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPanel('dashboardContent'); 
+    if (sessionUserData && sessionUserData.user_id) {
+        loadDashboard(); // already uses sessionUserData
+    } else {
+        fetchSessionUserData().then(() => loadDashboard());
+    }
+});
+
+
+logbookReportLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPanel('logbookReportContainer');
+    if (sessionUserData && sessionUserData.user_id) {
+        prefillLogbookForm(sessionUserData);
+    } else {
+        fetchSessionUserData().then(user => {
+           if (user) prefillLogbookForm(user);
+        });   
+    }
+});
+
+
+complaintSuggestionLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPanel('complaintSuggestionContainer');
+    if (sessionUserData && sessionUserData.user_id) {
+        prefillComplaintForm(sessionUserData);
+    } else {
+        fetchSessionUserData().then(user => {
+            if (user) prefillComplaintForm(user);
+        });
+    }
+});
+
+uploadProjectLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPanel('uploadProjectContainer');
+    fetchUploadedProjects();
+});
+
+editDetailsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPanel('editDetailsContainer');
+    if (sessionUserData && sessionUserData.user_id) {
+        prefillEditDetails(sessionUserData);
+    } else {
+        fetchSessionUserData().then(user => {
+            if(user) prefillEditDetails(user);
+        });
+    }
+});
+
+requestPermissionLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPanel('requestPermissionContainer');
+    if (sessionUserData && sessionUserData.user_id) {
+        prefillPermissionForm(sessionUserData);
+    } else {
+        fetchSessionUserData().then(user => {
+            if (user) refillPermissionForm(user);
+        });    
+    }
+});
+
+            // Quick Actions Button Event Listeners (NEW)
+            if (markAttendanceBtn) {
+            markAttendanceBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showMessage('Attendance marking functionality coming soon!', false, messageContainer, messageText);
+             });
+            }
+
+            if (submitReportBtn){
+            submitReportBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showPanel('logbookReportContainer'); // Directs to the Logbook Report form
+                fetchSessionUserData();
+            });
+             }
+
+            if (requestLeaveBtn) {
+            requestLeaveBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showPanel('requestPermissionContainer'); // Directs to the Request Permission form
+                fetchSessionUserData();
+                leaveRequestForm.reset();
+                clearMessage(permissionMessageContainer, permissionMessageText);
+            });
+            }
+
+            if (viewComplaintsBtn) {
+            viewComplaintsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showPanel('complaintSuggestionContainer'); // Directs to the Complaint & Suggestion form
+                fetchSessionUserData();
+            });
+         }
+
+
+            // Normalize to Monday
+            function normalizeToMonday(dateString) {
+                const date = new Date(dateString);
+                const day = date.getDay();
+                const diff = (day === 0 ? -6 : 1) - day; 
+                date.setDate(date.getDate() + diff);
+                return date.toISOString().split('T')[0]; 
+            }
+
+            // Display normalized week range
+            selectedWeekDateInput.addEventListener('change', function () {
+                const selectedDate = selectedWeekDateInput.value;
+                const mondayDate = normalizeToMonday(selectedDate);
+                weekRangeText.textContent = mondayDate;
+                weekRangeDisplay.classList.remove('hidden');
+            });
+
+
+            const getWeekRange = (dateString) => {
+                if (!dateString) return '';
+                const date = new Date(dateString + 'T00:00:00');
+                const dayOfWeek = date.getDay();
+                const startOfWeek = new Date(date);
+                startOfWeek.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 5); 
+                const options = { month: 'long', day: 'numeric', year: 'numeric' };
+                const formatter = new Intl.DateTimeFormat('en-US', options);
+
+                return `${formatter.format(startOfWeek)} - ${formatter.format(endOfWeek)}`;
+            };
+
+            selectedWeekDateInput.addEventListener('change', (e) => {
+                const dateValue = e.target.value;
+                const range = getWeekRange(dateValue);
+                if (range) {
+                    weekRangeText.textContent = range;
+                    weekRangeDisplay.classList.remove('hidden');
+                } else {
+                    weekRangeDisplay.classList.add('hidden');
+                }
+            });
+
+            // --- FILE UPLOAD PREVIEW ---
+            fileAttachmentInput.addEventListener('change', (e) => {
+                 const file = e.target.files ? e.target.files[0] : null;
+                if (file) {
+                    selectedFileNameDisplay.querySelector('span').textContent = file.name;
+                    selectedFileNameDisplay.classList.remove('hidden');
+                } else {
+                    selectedFileNameDisplay.classList.add('hidden');
+                }
+            });
+
+            // Generic show message function (for all forms, or specify target)
+            const showMessage = (msg, isError = false, targetContainer, targetText) => {
+                const container = targetContainer || messageContainer; // Default to logbook message container
+                const text = targetText || messageText; // Default to logbook message text
+
+                if (text && container) {
+                    text.textContent = msg;
+                    container.classList.remove('hidden');
+                    if (isError) {
+                        container.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
+                        container.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                    } else {
+                        container.classList.remove('bg-red-100', 'border-red-400', 'text-red-700');
+                        container.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+                    }
+                }
+            };
+
+            const clearMessage = (targetContainer, targetText) => {
+                const container = targetContainer || messageContainer;
+                const text = targetText || messageText;
+
+                if (container && text) {
+                    container.classList.add('hidden');
+                    text.textContent = '';
+                }
+            };
+
+
+            // --- LOGBOOK REPORT FORM SUBMISSION LOGIC ---
+            weeklyReportForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                clearMessage(messageContainer, messageText); 
+
+                if (!sessionUserData || !sessionUserData.user_id) {
+                    showMessage('User data not found. Please ensure you are logged in.', true, messageContainer, messageText);
+                    return;
+                }
+             
+                const selectedWeekDate = selectedWeekDateInput.value;
+                const currentWeekRange = weekRangeText.textContent;
+
+                if (!selectedWeekDate || !currentWeekRange) {
+                    showMessage('select a week date.', true, messageContainer, messageText);
+                    return;
+                }
+
+                const reports = {};
+                let hasReportContent = false;
+                for (const day in dayTextareas) {
+                    const textarea = dayTextareas[day];
+                    if (textarea && textarea.value.trim() !== '') {
+                        reports[day] = textarea.value.trim();
+                        hasReportContent = true;
+                    }
+                }
+
+                if (!hasReportContent) {
+                    showMessage('Please write at least one daily report for the week.', true, messageContainer, messageText);
+                    return;
+                }
+
+                submitButton.disabled = true;
+                submitText.classList.add('hidden');
+                submitLoader.classList.remove('hidden');
+
+                const formData = new FormData();
+                formData.append('userId', sessionUserData.user_id); 
+                formData.append('firstName', sessionUserData.first_name || '');
+                formData.append('lastName', sessionUserData.last_name || '');
+                formData.append('email', sessionUserData.email || '');
+                formData.append('weekDate', selectedWeekDate);
+                formData.append('weekRange', currentWeekRange);
+                formData.append('reports', JSON.stringify(reports));
+                formData.append('submittedAt', new Date().toISOString());
+
+                const file = fileAttachmentInput.files[0];
+                if (file) {
+                    formData.append('fileAttachment', file);
+                }
+
+                try {
+                    const response = await fetch(`/users/submit-logbook-report`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        showMessage(result.message || 'Weekly report submitted successfully!', false, messageContainer, messageText);
+                        weeklyReportForm.reset();
+                       // if (firstNameInput) firstNameInput.value = sessionUserData.first_name;
+                        //if (lastNameInput) lastNameInput.value = sessionUserData.last_name;
+                        weekRangeDisplay.classList.add('hidden');
+                        selectedFileNameDisplay.classList.add('hidden');
+                    } else {
+                        showMessage(result.message || 'Failed to submit report. Please try again.', true, messageContainer, messageText);
+                    }
+                } catch (error) {
+                    console.error('Error submitting logbook report:', error);
+                    showMessage(`An error occurred while submitting: ${error.message}`, true, messageContainer, messageText);
+                } finally {
+                    submitButton.disabled = false;
+                    submitText.classList.remove('hidden');
+                    submitLoader.classList.add('hidden');
+                }
+            });
+
+
+            
+            // --- COMPLAINT & SUGGESTION FORM LOGIC ---
+
+            let participantCount = 0;
+
+            const addParticipantRow = () => {
+                const newRow = document.createElement('div');
+                newRow.className = 'grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-gray-50 p-3 rounded-md border border-gray-200 relative';
+                newRow.innerHTML = `
+                    <div>
+                        <label for="participantName-${participantCount}" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                        <input type="text" id="participantName-${participantCount}" name="participantName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm" placeholder="Participant name">
+                    </div>
+                    <div>
+                        <label for="participantInvolvement-${participantCount}" class="block text-sm font-medium text-gray-700 mb-1">How Involved</label>
+                        <input type="text" id="participantInvolvement-${participantCount}" name="participantInvolvement" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm" placeholder="e.g., Witness, Victim">
+                    </div>
+                    <div>
+                        <label for="participantMobile-${participantCount}" class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                        <input type="text" id="participantMobile-${participantCount}" name="participantMobile" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm" placeholder="e.g., +1234567890">
+                    </div>
+                    <button type="button" class="remove-participant-btn absolute top-2 right-2 text-red-500 hover:text-red-700 p-1 rounded-full bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x">
+                            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                        </svg>
+                    </button>
+                `;
+                participantsContainer.appendChild(newRow);
+
+                // Add event listener to the new remove button
+                newRow.querySelector('.remove-participant-btn').addEventListener('click', () => {
+                    newRow.remove();
+                });
+
+                participantCount++;
+            };
+
+            addParticipantBtn.addEventListener('click', addParticipantRow);
+
+            complaintSuggestionForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                clearMessage(complaintMessageContainer, complaintMessageText);
+
+                if (!sessionUserData || !sessionUserData.user_id) {
+                    showMessage('User data not found. Please ensure you are logged in.', true, complaintMessageContainer, complaintMessageText);
+                    return;
+                }
+
+                const subject = complaintSubjectInput.value.trim();
+                const message = complaintMessageInput.value.trim();
+
+                if (!subject || !message) {
+                    showMessage('Subject and Message Text are required.', true, complaintMessageContainer, complaintMessageText);
+                    return;
+                }
+
+                submitComplaintButton.disabled = true;
+                complaintSubmitText.classList.add('hidden');
+                complaintSubmitLoader.classList.remove('hidden');
+
+                const formData = new FormData();
+                formData.append('userId', sessionUserData.user_id); 
+                formData.append('firstName', sessionUserData.first_name || '');
+                formData.append('lastName', sessionUserData.last_name || '');
+                formData.append('email', sessionUserData.email || '');
+                formData.append('subject', subject);
+                formData.append('message', message);
+                formData.append('submittedAt', new Date().toISOString());
+
+                if (incidentDateTimeInput.value) formData.append('incidentDateTime', incidentDateTimeInput.value);
+                if (incidentLocationInput.value) formData.append('incidentLocation', incidentLocationInput.value);
+                if (complaintDetailsTextarea.value) formData.append('complaintDetails', complaintDetailsTextarea.value);
+
+                const participants = [];
+                participantsContainer.querySelectorAll('.grid').forEach(row => {
+                    const name = row.querySelector('[name="participantName"]').value;
+                    const involvement = row.querySelector('[name="participantInvolvement"]').value;
+                    const mobile = row.querySelector('[name="participantMobile"]').value;
+                    if (name || involvement || mobile) {
+                        participants.push({ name, involvement, mobile });
+                    }
+                });
+                if (participants.length > 0) {
+                    formData.append('participants', JSON.stringify(participants));
+                }
+
+                try {
+                    const response = await fetch(`/users/submit-complaint-suggestion`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showMessage(result.message || 'Complaint/Suggestion submitted successfully!', false, complaintMessageContainer, complaintMessageText);
+                        complaintSuggestionForm.reset();
+                        participantsContainer.innerHTML = '';
+                        participantCount = 0; 
+                    } else {
+                        showMessage(result.message || 'Failed to submit complaint/suggestion. Please try again.', true, complaintMessageContainer, complaintMessageText);
+                    }
+                } catch (error) {
+                    console.error('Error submitting complaint/suggestion:', error);
+                    showMessage(`An error occurred while submitting: ${error.message}`, true, complaintMessageContainer, complaintMessageText);
+                } finally {
+                    submitComplaintButton.disabled = false;
+                    complaintSubmitText.classList.remove('hidden');
+                    complaintSubmitLoader.classList.add('hidden');
+                }
+            });
+            
+            
+            // Show the dashboard by default on load
+            showPanel('dashboardContent');
+
+            // Enforce Monday-only submission for logbook
+            const today = new Date();
+            if (submitButton && today.getDay() !== 1) { 
+                submitButton.disabled = true;
+                submitButton.title = 'You can only submit your logbook on Mondays.';
+            }
+
+            // --- Edit Details Functionality ---
+
+            // Function to show messages specifically for the Edit Details section
+            const showEditDetailsMessage = (msg, isError = false) => {
+                const container = document.getElementById('editDetailsMessageContainer') || messageContainer;
+                const text = document.getElementById('editDetailsMessageText') || messageText;
+
+                if (text && container) {
+                    text.textContent = msg;
+                    container.classList.remove('hidden');
+                    if (isError) {
+                        container.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
+                        container.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                    } else {
+                        container.classList.remove('bg-red-100', 'border-red-400', 'text-red-700');
+                        container.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+                    }
+                }
+            };
+
+            const clearEditDetailsMessage = () => {
+                const container = document.getElementById('editDetailsMessageContainer') || messageContainer;
+                const text = document.getElementById('editDetailsMessageText') || messageText;
+                if (container && text) {
+                    container.classList.add('hidden');
+                    text.textContent = '';
+                }
+            };
+
+
+            // Save Profile Changes (First Name, Middle Name, Last Name)
+            saveProfileBtn.addEventListener('click', async () => {
+                clearEditDetailsMessage();
+
+                if (!sessionUserData || !sessionUserData.user_id) {
+                    showEditDetailsMessage('User data not found. Please log in.', true);
+                    return;
+                }
+
+                const updatedProfile = {
+                    first_name: editFirstNameInput.value.trim(),
+                    middle_name: editMiddleNameInput.value.trim(),
+                    last_name: editLastNameInput.value.trim(),
+                    user_id: sessionUserData.user_id 
+                };
+
+                if (!updatedProfile.first_name || !updatedProfile.last_name) {
+                    showEditDetailsMessage('First Name and Last Name cannot be empty.', true);
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/users/update-profile', { 
+                        method: 'PUT', 
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updatedProfile),
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showEditDetailsMessage(result.message || 'Profile updated successfully!', false);
+                        sessionUserData.first_name = updatedProfile.first_name;
+                        sessionUserData.middle_name = updatedProfile.middle_name;
+                        sessionUserData.last_name = updatedProfile.last_name;
+                        userProfileName.textContent = `${sessionUserData.first_name || ''} ${sessionUserData.last_name || ''}`;
+                    } else {
+                        showEditDetailsMessage(result.message || 'Failed to update profile. Please try again.', true);
+                    }
+                } catch (error) {
+                    console.error('Error updating profile:', error);
+                    showEditDetailsMessage(`An error occurred: ${error.message}`, true);
+                }
+            });
+
+            // Change Email functionality
+            changeEmailBtn.addEventListener('click', () => {
+                clearEditDetailsMessage();
+                const isReadonly = editEmailInput.readOnly;
+                editEmailInput.readOnly = !isReadonly;
+                editEmailInput.classList.toggle('bg-gray-100');
+                editEmailInput.classList.toggle('bg-white');
+                saveEmailBtn.classList.toggle('hidden');
+                changeEmailBtn.textContent = isReadonly ? 'Cancel' : 'Change email';
+            });
+
+            // Save Email Changes
+            saveEmailBtn.addEventListener('click', async () => {
+                clearEditDetailsMessage();
+
+                if (!sessionUserData || !sessionUserData.user_id) {
+                    showEditDetailsMessage('User data not found. Please log in.', true);
+                    return;
+                }
+
+                const newEmail = editEmailInput.value.trim();
+                
+                if (!newEmail || !newEmail.includes('@') || !newEmail.includes('.')) {
+                    showEditDetailsMessage('Please enter a valid email address.', true);
+                    return;
+                }
+
+                // For a real app, you'd prompt for current password here
+                const currentPassword = prompt('Please enter your current password to confirm email change:');
+                if (!currentPassword) {
+                    showEditDetailsMessage('Email change cancelled. Current password is required.', true);
+                    return;
+                }
+
+
+                try {
+                    const response = await fetch('/users/update-email', { 
+                        method: 'PUT', 
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: sessionUserData.user_id,
+                            new_email: newEmail,
+                            current_password: currentPassword, 
+                        }),
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showEditDetailsMessage(result.message || 'Email updated successfully!', false);
+                        sessionUserData.email = newEmail; 
+                        editEmailInput.readOnly = true;
+                        editEmailInput.classList.add('bg-gray-100');
+                        editEmailInput.classList.remove('bg-white');
+                        saveEmailBtn.classList.add('hidden');
+                        changeEmailBtn.textContent = 'Change email';
+                    } else {
+                        showEditDetailsMessage(result.message || 'Failed to update email. Please try again.', true);
+                    }
+                } catch (error) {
+                    console.error('Error updating email:', error);
+                    showEditDetailsMessage(`An error occurred: ${error.message}`, true);
+                }
+            });
+
+            // Change Password functionality
+            changePasswordBtn.addEventListener('click', () => {
+                clearEditDetailsMessage();
+                newPasswordFields.classList.toggle('hidden');
+                currentPasswordInput.value = '';
+                newPasswordInput.value = '';
+                confirmNewPasswordInput.value = '';
+                changePasswordBtn.textContent = newPasswordFields.classList.contains('hidden') ? 'Change password' : 'Cancel Change';
+            });
+
+            // Save New Password
+            savePasswordBtn.addEventListener('click', async () => {
+                clearEditDetailsMessage();
+
+                if (!sessionUserData || !sessionUserData.user_id) {
+                    showEditDetailsMessage('User data not found. Please log in.', true);
+                    return;
+                }
+
+                const currentPassword = currentPasswordInput.value;
+                const newPassword = newPasswordInput.value;
+                const confirmNewPassword = confirmNewPasswordInput.value;
+
+                if (!currentPassword || !newPassword || !confirmNewPassword) {
+                    showEditDetailsMessage('All password fields are required.', true);
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    showEditDetailsMessage('New password must be at least 6 characters long.', true);
+                    return;
+                }
+
+                if (newPassword !== confirmNewPassword) {
+                    showEditDetailsMessage('New password and confirm new password do not match.', true);
+                    return;
+                }
+
+                if (currentPassword === newPassword) {
+                    showEditDetailsMessage('New password cannot be the same as the current password.', true);
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/users/update-password', { 
+                        method: 'PUT', 
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: sessionUserData.user_id,
+                            current_password: currentPassword,
+                            new_password: newPassword,
+                            confirm_new_password: confirmNewPassword,
+                        }),
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showEditDetailsMessage(result.message || 'Password updated successfully!', false);
+                        currentPasswordInput.value = '';
+                        newPasswordInput.value = '';
+                        confirmNewPasswordInput.value = '';
+                        newPasswordFields.classList.add('hidden');
+                        changePasswordBtn.textContent = 'Change password';
+                    } else {
+                        showEditDetailsMessage(result.message || 'Failed to update password. Please try again.', true);
+                    }
+                } catch (error) {
+                    console.error('Error updating password:', error);
+                    showEditDetailsMessage(`An error occurred: ${error.message}`, true);
+                }
+            });
+
+            // --- Upload Project Functionality ---
+            let uploadedFiles = []; // Array to store information about uploaded files
+
+            // Function to render uploaded files in the list
+            const renderUploadedFiles = () => {
+                uploadedFilesList.innerHTML = ''; // Clear existing list
+                if (uploadedFiles.length === 0) {
+                    uploadedFilesList.innerHTML = '<p class="text-center text-gray-500">No files uploaded yet.</p>';
+                    return;
+                }
+
+                uploadedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50';
+                    fileItem.innerHTML = `
+                        <div class="flex items-center flex-grow mr-4">
+                            ${getFileIcon(file.mime_type || file.type)}
+                            <div class="flex-grow">
+                                <p class="text-sm font-medium text-gray-800 truncate">${file.project_name || file.name}</p>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                    <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${file.progress || 100}%;"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">${file.status || 'Uploaded'} - ${(file.file_size / (1024 * 1024)).toFixed(2)} MB</p>
+                            </div>
+                        </div>
+                        <button class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-gray-100 transition-colors duration-200 delete-file-btn" data-id="${file.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2">
+                                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>
+                            </svg>
+                        </button>
+                    `;
+                    uploadedFilesList.appendChild(fileItem);
+                });
+
+                // Add event listeners for delete buttons
+                uploadedFilesList.querySelectorAll('.delete-file-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const fileIdToDelete = parseInt(e.currentTarget.dataset.id);
+                        deleteFile(fileIdToDelete);
+                    });
+                });
+            };
+
+            // Helper to get file icon based on type
+            const getFileIcon = (fileType) => {
+                if (!fileType) return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file mr-3 text-gray-500"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L15 2Z"/><path d="M14 2v6h6"/></svg>`;
+
+                if (fileType.includes('image')) {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image mr-3 text-blue-500"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`;
+                } else if (fileType.includes('pdf')) {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text mr-3 text-red-500"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L15 2Z"/><path d="M14 2v6h6"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M16 16h-6"/></svg>`;
+                } else if (fileType.includes('video')) {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-video mr-3 text-green-500"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="1" y="6" rx="2" ry="2"/></svg>`;
+                } else {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file mr-3 text-gray-500"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L15 2Z"/><path d="M14 2v6h6"/></svg>`;
+                }
+            };
+
+            // Real file upload function
+            const uploadFile = async (file) => {
+                clearMessage(uploadMessageContainer, uploadMessageText);
+
+                const projectName = uploadProjectNameInput.value.trim();
+                const description = uploadProjectDescriptionInput.value.trim();
+
+                if (!projectName) {
+                    showMessage('Project Name is required before uploading a file.', true, uploadMessageContainer, uploadMessageText);
+                    return;
+                }
+
+                // Add a temporary entry to show immediate progress
+                const tempFileEntry = {
+                    id: 'temp-' + Date.now(), // Temporary ID
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    progress: 0,
+                    status: 'Uploading...',
+                    project_name: projectName,
+                    description: description
+                };
+                uploadedFiles.unshift(tempFileEntry); // Add to the beginning for immediate visibility
+                renderUploadedFiles();
+
+                const formData = new FormData();
+                formData.append('projectFile', file);
+                formData.append('projectName', projectName);
+                formData.append('description', description);
+
+                // Simulate progress for the temp file entry
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress = Math.min(progress + 5, 95); // Stop before 100 to wait for actual response
+                    const idx = uploadedFiles.findIndex(f => f.id === tempFileEntry.id);
+                    if (idx !== -1) {
+                        uploadedFiles[idx].progress = progress;
+                        renderUploadedFiles();
+                    }
+                }, 100);
+
+
+                try {
+                    const response = await fetch('/users/upload-project-file', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    clearInterval(progressInterval); // Stop simulation
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        const idx = uploadedFiles.findIndex(f => f.id === tempFileEntry.id);
+                        if (idx !== -1) {
+                            uploadedFiles[idx] = {
+                                id: result.file.id, // Replace temporary ID with real ID
+                                name: result.file.original_file_name,
+                                project_name: result.file.project_name,
+                                description: result.file.description,
+                                file_size: result.file.file_size,
+                                mime_type: result.file.mime_type,
+                                uploaded_at: result.file.uploaded_at,
+                                progress: 100,
+                                status: 'Upload Successful!',
+                            };
+                        }
+                        showMessage(result.message, false, uploadMessageContainer, uploadMessageText);
+                        // Clear the project name and description fields after successful upload
+                        uploadProjectNameInput.value = '';
+                        uploadProjectDescriptionInput.value = '';
+                        projectFileInput.value = ''; // Clear file input
+                        fetchUploadedProjects(); // Refresh the list from the backend
+                    } else {
+                        const idx = uploadedFiles.findIndex(f => f.id === tempFileEntry.id);
+                        if (idx !== -1) {
+                            uploadedFiles[idx].status = `Upload failed: ${result.message || 'Server error'}`;
+                            uploadedFiles[idx].progress = 0; // Reset progress or set to a failed state
+                        }
+                        showMessage(result.message || 'Failed to upload file.', true, uploadMessageContainer, uploadMessageText);
+                    }
+                } catch (error) {
+                    clearInterval(progressInterval); // Stop simulation
+                    const idx = uploadedFiles.findIndex(f => f.id === tempFileEntry.id);
+                    if (idx !== -1) {
+                        uploadedFiles[idx].status = `Network error: ${error.message}`;
+                        uploadedFiles[idx].progress = 0;
+                    }
+                    console.error('Error during file upload:', error);
+                    showMessage(`An error occurred: ${error.message}`, true, uploadMessageContainer, uploadMessageText);
+                } finally {
+                    renderUploadedFiles(); // Re-render to show final status or remove failed temp entry
+                }
+            };
+
+            // Function to fetch already uploaded projects from the backend
+            const fetchUploadedProjects = async () => {
+                clearMessage(uploadMessageContainer, uploadMessageText);
+                uploadedFilesList.innerHTML = '<p class="text-center text-gray-500">Loading files...</p>';
+                try {
+                    const response = await fetch('/users/get-uploaded-projects');
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        uploadedFiles = result.projects.map(p => ({
+                            id: p.id,
+                            project_name: p.project_name,
+                            description: p.description,
+                            name: p.original_file_name, // Use original_file_name for display
+                            file_size: p.file_size,
+                            mime_type: p.mime_type,
+                            uploaded_at: p.uploaded_at,
+                            progress: 100, // Assuming fully uploaded if fetched
+                            status: 'Uploaded',
+                        }));
+                        renderUploadedFiles();
+                    } else {
+                        uploadedFilesList.innerHTML = `<p class="text-center text-red-500">Error loading files: ${result.message || 'Server error'}</p>`;
+                        showMessage(result.message || 'Failed to load uploaded projects.', true, uploadMessageContainer, uploadMessageText);
+                    }
+                } catch (error) {
+                    console.error('Error fetching uploaded projects:', error);
+                    uploadedFilesList.innerHTML = `<p class="text-center text-red-500">Network error loading files: ${error.message}</p>`;
+                    showMessage(`An error occurred while fetching projects: ${error.message}`, true, uploadMessageContainer, uploadMessageText);
+                }
+            };
+
+            // Real file deletion function
+            const deleteFile = async (fileId) => {
+                clearMessage(uploadMessageContainer, uploadMessageText);
+                const fileToDelete = uploadedFiles.find(f => f.id === fileId);
+
+                if (!fileToDelete) {
+                    showMessage('Cannot delete file: ID missing.', true, uploadMessageContainer, uploadMessageText);
+                    return;
+                }
+
+                const confirmDelete = confirm(`Are you sure you want to delete "${fileToDelete.project_name || fileToDelete.name}"? This action cannot be undone.`);
+                if (!confirmDelete) return;
+
+                // Temporarily update status for immediate feedback
+                const idx = uploadedFiles.findIndex(f => f.id === fileId);
+                if (idx !== -1) {
+                    uploadedFiles[idx].status = 'Deleting...';
+                    renderUploadedFiles();
+                }
+
+                try {
+                    const response = await fetch(`/users/delete-project-file/${fileId}`, {
+                        method: 'DELETE',
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showMessage(result.message, false, uploadMessageContainer, uploadMessageText);
+                        uploadedFiles = uploadedFiles.filter(f => f.id !== fileId); // Remove from frontend list
+                        renderUploadedFiles();
+                    } else {
+                        // Revert status on failure
+                        if (idx !== -1) {
+                            uploadedFiles[idx].status = 'Deletion failed.';
+                            renderUploadedFiles();
+                        }
+                        showMessage(result.message || 'Failed to delete file.', true, uploadMessageContainer, uploadMessageText);
+                    }
+                } catch (error) {
+                    // Revert status on network error
+                    if (idx !== -1) {
+                        uploadedFiles[idx].status = `Network error: ${error.message}`;
+                        renderUploadedFiles();
+                    }
+                    console.error('Error deleting file:', error);
+                    showMessage(`An error occurred while deleting: ${error.message}`, true, uploadMessageContainer, uploadMessageText);
+                }
+            };
+
+            // Handle file input change
+            projectFileInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    Array.from(files).forEach(file => {
+                        // Basic client-side validation for file size (10MB) and type
+                        const maxFileSize = 10 * 1024 * 1024; // 10 MB
+                        const allowedTypes = ['image/svg+xml', 'image/jpeg', 'image/png', 'application/pdf'];
+
+                        if (file.size > maxFileSize) {
+                            showMessage(`File "${file.name}" is too large. Max size is 10MB.`, true, uploadMessageContainer, uploadMessageText);
+                            return;
+                        }
+                        if (!allowedTypes.includes(file.type)) {
+                            showMessage(`File "${file.name}" has an unsupported format. Supported: SVG, JPG, PNG, PDF.`, true, uploadMessageContainer, uploadMessageText);
+                            return;
+                        }
+                        uploadFile(file);
+                    });
+                }
+            });
+
+            // Handle drag and drop events
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('border-purple-500', 'bg-purple-50');
+            });
+
+            dropArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('border-purple-500', 'bg-purple-50');
+            });
+
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('border-purple-500', 'bg-purple-50');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    Array.from(files).forEach(file => {
+                        const maxFileSize = 10 * 1024 * 1024; // 10 MB
+                        const allowedTypes = ['image/svg+xml', 'image/jpeg', 'image/png', 'application/pdf'];
+
+                        if (file.size > maxFileSize) {
+                            showMessage(`File "${file.name}" is too large. Max size is 10MB.`, true, uploadMessageContainer, uploadMessageText);
+                            return;
+                        }
+                        if (!allowedTypes.includes(file.type)) {
+                            showMessage(`File "${file.name}" has an unsupported format. Supported: SVG, JPG, PNG, PDF.`, true, uploadMessageContainer, uploadMessageText);
+                            return;
+                        }
+                        uploadFile(file);
+                    });
+                }
+            });
+
+            // --- Request Leave/Permission Functionality (UPDATED) ---
+            leaveRequestForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                clearMessage(permissionMessageContainer, permissionMessageText); // Use the general permission message container
+
+                if (!sessionUserData || !sessionUserData.user_id) {
+                    showMessage('User data not found. Please ensure you are logged in.', true, permissionMessageContainer, permissionMessageText);
+                    return;
+                }
+
+                const leaveType = leaveTypeInput.value;
+                const startDate = leaveStartDateInput.value;
+                const endDate = leaveEndDateInput.value;
+                const reason = leaveReasonInput.value.trim();
+                const attachmentFile = leaveAttachmentInput.files[0];
+
+                if (!leaveType || !startDate || !endDate || !reason) {
+                    showMessage('Please fill out all required fields: Leave Type, Start Date, End Date, and Reason.', true, permissionMessageContainer, permissionMessageText);
+                    return;
+                }
+
+                // Date validation: Start date should not be after end date
+                if (new Date(startDate) > new Date(endDate)) {
+                    showMessage('Start Date cannot be after End Date.', true, permissionMessageContainer, permissionMessageText);
+                    return;
+                }
+                
+                // Optional client-side attachment validation
+                if (attachmentFile) {
+                    const maxFileSize = 5 * 1024 * 1024; // 5MB
+                    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
+
+                    if (attachmentFile.size > maxFileSize) {
+                        showMessage('Attachment is too large. Max size is 5MB.', true, permissionMessageContainer, permissionMessageText);
+                        return;
+                    }
+                    if (!allowedTypes.includes(attachmentFile.type)) {
+                        showMessage('Unsupported attachment format. Supported: PDF, DOCX, Images.', true, permissionMessageContainer, permissionMessageText);
+                        return;
+                    }
+                }
+
+
+                submitLeaveRequestBtn.disabled = true;
+                leaveSubmitText.classList.add('hidden');
+                leaveSubmitLoader.classList.remove('hidden');
+
+                const formData = new FormData();
+                formData.append('userId', sessionUserData.user_id);
+                formData.append('firstName', sessionUserData.first_name || '');
+                formData.append('lastName', sessionUserData.last_name || '');
+                formData.append('email', sessionUserData.email || '');
+                formData.append('leaveType', leaveType);
+                formData.append('startDate', startDate);
+                formData.append('endDate', endDate);
+                formData.append('reason', reason);
+                formData.append('requestedAt', new Date().toISOString());
+                if (attachmentFile) {
+                    formData.append('attachment', attachmentFile);
+                }
+
+                try {
+                    // This is a placeholder. You'll need to implement this endpoint on your backend.
+                    const response = await fetch('/users/submit-leave-request', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showMessage(result.message || 'Leave request submitted successfully!', false, permissionMessageContainer, permissionMessageText);
+                        leaveRequestForm.reset(); // Clear the form on success
+                    } else {
+                        showMessage(result.message || 'Failed to submit leave request. Please try again.', true, permissionMessageContainer, permissionMessageText);
+                    }
+                } catch (error) {
+                    console.error('Error submitting leave request:', error);
+                    showMessage(`An error occurred while submitting: ${error.message}`, true, permissionMessageContainer, permissionMessageText);
+                } finally {
+                    submitLeaveRequestBtn.disabled = false;
+                    leaveSubmitText.classList.remove('hidden');
+                    leaveSubmitLoader.classList.add('hidden');
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>

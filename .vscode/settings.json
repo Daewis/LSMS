@@ -1,0 +1,37 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "PG Local",
+            "username": "postgres",
+            "database": "TobiDatabase",
+            "password": "Abokunwa20",
+            "connectionTimeout": 40
+        },
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "POST-G Local",
+            "database": "Attendance_System",
+            "username": "postgres",
+            "password": "Abokunwa20",
+            "connectionTimeout": 30
+        },
+        {
+            "previewLimit": 60,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "database": "LASUED SIWES MANAGEMENT SYSTEM",
+            "password": "Abokunwa20",
+            "connectionTimeout": 30,
+            "name": "LSMS ",
+            "username": "postgres"
+        }
+    ]
+}

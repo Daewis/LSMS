@@ -73,7 +73,8 @@ app.get('/dashboard', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/sign_in.html');
   }
-  res.sendFile(path.join(__dirname, 'public/user-dashboard.html'));
+  //res.sendFile(path.join(process.cwd(), 'public', 'dashboard.html'));
+  res.sendFile(path.join(__dirname, 'public/user_dashboard.html'));
 });
 
 

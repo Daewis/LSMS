@@ -29,7 +29,6 @@ app.use(bodyParser.json()); // Parse JSON request bodies
 app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded request bodies
 
 // Serve static files from the 'public' directory
-// This allows your HTML, CSS, client-side JS, and images to be served
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure express-session with PostgreSQL store
@@ -70,14 +69,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
-/*
-app.get('/User_dashboard', (req, res) => {
+
+app.get('/User_dashboard.html', (req, res) => {
   if (!req.session.user && !req.session.admin) {
-    return res.redirect('/Sign_in.html');
+    return res.redirect('/sign_in.html');
   }
   res.sendFile(path.join(process.cwd(), 'public', 'User_dashboard.html'));
 });
-**/
+
  
 
 // Start the server

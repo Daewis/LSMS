@@ -70,13 +70,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
+/*
 app.get('/User_dashboard', (req, res) => {
   if (!req.session.user && !req.session.admin) {
     return res.redirect('/Sign_in.html');
   }
   res.sendFile(path.join(process.cwd(), 'public', 'User_dashboard.html'));
 });
-
+**/
  
 
 // Start the server

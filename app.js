@@ -70,12 +70,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
-
-app.get('/user_dashboard', (req, res) => {
+app.get('/User_dashboard', (req, res) => {
   if (!req.session.user && !req.session.admin) {
-    return res.redirect('/sign_in.html');
+    return res.redirect('/Sign_in.html');
   }
-  res.sendFile(path.join(process.cwd(), 'public', 'user_dashboard.html'));
+  res.sendFile(path.join(process.cwd(), 'public', 'User_dashboard.html'));
 });
 
  

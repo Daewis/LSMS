@@ -528,7 +528,7 @@
         const submitBtn = document.getElementById('submit-btn');
 
         // Configuration
-        const BACKEND_API_URL = 'http://localhost:4000';
+        //const BACKEND_API_URL = 'http://localhost:4000';
 
         // Global variables
         let modalRedirectTarget = null;
@@ -684,7 +684,12 @@ async function loadInternsList(page = 1, limit = 5) {
 
     try {
         // Fetch data with pagination parameters
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/view-interns?page=${page}&limit=${limit}`);
+        const response = await fetch('/api/admin/view-interns?page=${page}&limit=${limit}', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -923,7 +928,12 @@ function setBreadcrumb(section, subSection = null) {
 
              try {
         // Fetch paginated data from the updated backend route
-        const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-requests?page=${page}&limit=${limit}`);
+        const res = await fetch('/api/admin/leave-requests?page=${page}&limit=${limit}', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
@@ -1091,7 +1101,9 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
         // --- Download attachment function ---
         async function downloadAttachment(permissionId) {
             try {
-                const res = await fetch(`${BACKEND_API_URL}/api/admin/download-attachment/${permissionId}`);
+                const res = await fetch('/api/admin/download-attachment/${permissionId}', {
+                    method: 'GET'
+                });
                 if (!res.ok) throw new Error('Failed to download attachment');
                 
                 const blob = await res.blob();
@@ -1117,7 +1129,7 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
         // --- Update backend ---
         async function updatePermission(id, status, rejectionReason = null) {
             try {
-                const res = await fetch(`${BACKEND_API_URL}/api/admin/update-leave-request-status`, {
+                const res = await fetch('/api/admin/update-leave-request-status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -1449,7 +1461,10 @@ async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
         complaintsTable.classList.add('hidden');
 
         try {
-            const response = await fetch(`${BACKEND_API_URL}/api/admin/complaints?page=${page}&limit=${limit}`);
+            const response = await fetch('/api/admin/complaints?page=${page}&limit=${limit}', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
 
@@ -1629,7 +1644,7 @@ function showComplaintDetailsModal(complaint) {
             const responseText = document.getElementById('complaintResponse')?.value || '';
 
             try {
-                const res = await fetch(`${BACKEND_API_URL}/api/admin/complaints/${id}/review`, {
+                const res = await fetch('/api/admin/complaints/${id}/review', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1719,7 +1734,7 @@ function showComplaintDetailsModal(complaint) {
             }
 
             try {
-                const response = await fetch(`${BACKEND_API_URL}/api/admin/admin-notifications`, {
+                const response = await fetch('/api/admin/admin-notifications', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1820,7 +1835,7 @@ function showComplaintDetailsModal(complaint) {
             // Mark as read if unread
             if (!notif.is_read) {
                 try {
-                    const response = await fetch(`${BACKEND_API_URL}/api/admin/notifications/${notif.notification_id}/read`, {
+                    const response = await fetch(`/api/admin/notifications/${notif.notification_id}/read`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' }
                     });
@@ -1858,7 +1873,7 @@ function showComplaintDetailsModal(complaint) {
             if (NotificationState.unreadCount === 0) return;
 
             try {
-                const response = await fetch(`${BACKEND_API_URL}/api/admin/notifications/mark-all-read`, {
+                const response = await fetch('/api/admin/notifications/mark-all-read', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -2051,7 +2066,10 @@ function showComplaintDetailsModal(complaint) {
 async function fetchAndRenderInternDetails(internId) {
     showSpinner();
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/interns/${internId}`);
+        const response = await fetch('/api/admin/interns/${internId}', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -2206,7 +2224,7 @@ async function handleEditInternSubmit(event) {
     const formData = new FormData(form);
 
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/interns/${internId}`, {
+        const response = await fetch(`/api/admin/interns/${internId}`, {
             method: 'PUT',
             // The 'Content-Type' header is automatically set to 'multipart/form-data' by the browser
             // when you use a FormData object. Do not set it manually!
@@ -2277,7 +2295,7 @@ async function handleEditInternSubmit(event) {
                 signOutLink.addEventListener('click', async (event) => {
                     event.preventDefault();
                     try {
-                        const response = await fetch(`${BACKEND_API_URL}/auth/logout`, { method: 'POST' });
+                        const response = await fetch(`/auth/logout`, { method: 'POST' });
                         if (response.ok) {
                             sessionStorage.removeItem('currentUser'); // Clear client-side session data
                             showModal('Logged Out', 'You have been successfully logged out.', '/Sign_in.html'); // Redirect to login
@@ -2451,7 +2469,7 @@ async function fetchInternsForLogbookViewer() {
     //showSpinner();
     try {
         // Use the admin endpoint that returns ALL interns
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/view-interns`);
+        const response = await fetch('/api/admin/view-interns');
         if (!response.ok) {
             if (response.status === 401 || response.status === 403) {
                 sessionStorage.removeItem('currentUser');
@@ -2535,7 +2553,7 @@ async function fetchLogbookReports(internId, internFirstName, internLastName, pa
 
     showSpinner();
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/interns/${internId}/logbooks?page=${page}&limit=${limit}`);
+        const response = await fetch(`/api/admin/interns/${internId}/logbooks?page=${page}&limit=${limit}`);
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -2591,7 +2609,7 @@ async function saveGrade(logbookId, grade) {
     try {
         // Update the API endpoint to match your Node.js route for grading logbooks
         // This assumes a PATCH or PUT endpoint like /api/logbooks/:logbookId/grade
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/logbooks/${logbookId}/grade`, {
+        const response = await fetch(`/api/admin/logbooks/${logbookId}/grade`, {
             method: 'PATCH', // Or PUT, depending on your API design
             headers: {
                 'Content-Type': 'application/json',
@@ -2756,7 +2774,7 @@ async function renderProjects(page = 1, limit = 10) {
 
     try {
         // Fetch paginated data from the updated backend route
-        const res = await fetch(`${BACKEND_API_URL}/api/admin/get-projects?page=${page}&limit=${limit}`);
+        const res = await fetch(`/api/admin/get-projects?page=${page}&limit=${limit}`);
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
@@ -2903,7 +2921,7 @@ function confirmDeleteProject(projectId, projectName) {
 async function deleteProject(projectId) {
    // showSpinner();
     try {
-        const res = await fetch(`${BACKEND_API_URL}/api/admin/delete-project/${projectId}`, {
+        const res = await fetch(`/api/admin/delete-project/${projectId}`, {
             method: 'DELETE',
         });
         const data = await res.json();
@@ -2930,7 +2948,7 @@ async function deleteProject(projectId) {
 
 async function downloadProject(fileId) {
     try {
-        const res = await fetch(`${BACKEND_API_URL}/api/admin/download-project/${fileId}`);
+        const res = await fetch(`/api/admin/download-project/${fileId}`);
         if (!res.ok) throw new Error("Failed to download project");
 
         const blob = await res.blob();
@@ -3037,7 +3055,7 @@ async function downloadProject(fileId) {
             };
 
             try {
-                const response = await fetch(`${BACKEND_API_URL}/api/admin/register`, {
+                const response = await fetch(`/api/admin/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -3116,7 +3134,7 @@ async function downloadProject(fileId) {
     }
 
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/send-notification`, {
+        const response = await fetch(`/api/admin/send-notification`, {
             method: 'POST',
             body: formData   // ✅ sends as multipart/form-data
         });
@@ -3143,7 +3161,7 @@ async function loadMessagesHistory() {
     if (!historyContainer) return;
 
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/messages`);
+        const response = await fetch(`/api/admin/messages`);
         const result = await response.json();
 
         if (response.ok && result.messages.length > 0) {
@@ -3182,7 +3200,7 @@ async function loadMessagesHistory() {
                     if (!confirm('Are you sure you want to delete this message?')) return;
 
                     try {
-                        const response = await fetch(`${BACKEND_API_URL}/api/admin/messages/${messageId}`, {
+                        const response = await fetch(`/api/admin/messages/${messageId}`, {
                             method: 'DELETE'
                         });
                         const result = await response.json();
@@ -3226,7 +3244,7 @@ async function renderPendingUsers(page = 1, limit = 10) {
     const pagination = document.getElementById('pending-users-pagination');
 
     try {
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/pending-users?page=${page}&limit=${limit}`);
+        const response = await fetch(`/api/admin/pending-users?page=${page}&limit=${limit}`);
         if (!response.ok) throw new Error('Failed to fetch pending users');
         
         const data = await response.json();
@@ -3346,7 +3364,7 @@ async function handleUserApproval(e) {
         async () => {
             try {
                 showSpinner();
-                const response = await fetch(`${BACKEND_API_URL}/api/admin/approve-user/${userId}`, {
+                const response = await fetch(`/api/admin/approve-user/${userId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -3379,7 +3397,7 @@ async function handleUserApproval(e) {
     confirmBtn.onclick = async () => {
         try {
             showSpinner();
-            const response = await fetch(`${BACKEND_API_URL}/api/admin/approve-user/${userId}`, {
+            const response = await fetch(`/api/admin/approve-user/${userId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -3450,7 +3468,7 @@ async function handleUserRejection(e) {
         
         try {
             showSpinner();
-            const response = await fetch(`${BACKEND_API_URL}/api/admin/reject-user/${userId}`, {
+            const response = await fetch(`/api/admin/reject-user/${userId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reason, deleteUser })

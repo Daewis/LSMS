@@ -129,11 +129,11 @@ if (signInForm) {
                 sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
 
                 if (result.role === 'admin' || result.role === 'superadmin') {
-                    showModal('Login Successful', `Welcome, ${result.first_name}! Redirecting to your admin dashboard.`, '/admin_dashboard.html'); 
+                    showModal('Login Successful', `Welcome, ${result.first_name}! Redirecting to your admin dashboard.`, '/Admin_dashboard.html'); 
                 } else if (result.role === 'intern') {
-                    showModal('Login Successful', `Welcome, ${result.first_name}! Redirecting to your dashboard.`, '/user_dashboard.html');
+                    showModal('Login Successful', `Welcome, ${result.first_name}! Redirecting to your dashboard.`, '/User_dashboard.html');
                 } else {
-                    showModal('Login Successful', "Login successful! Redirecting to user dashboard.", '/user_dashboard.html');
+                    showModal('Login Successful', "Login successful! Redirecting to user dashboard.", '/User_dashboard.html');
                 }
             } else {
                 showModal('Login Failed', result.message || "Login failed. Please check your credentials.");

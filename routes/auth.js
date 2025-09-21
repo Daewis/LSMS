@@ -47,7 +47,7 @@ async function notifyAdminsOfNewRegistrationInApp(userData, client) {
     'admin',             // recipient_role
     userData.user_id,    // sender is new user
     `New user registered: ${userData.name}`,
-    `/admin_dashboard.html#user-details?id=${userData.user_id}`
+    `/Admin_dashboard.html#user-details?id=${userData.user_id}`
   ]
 );
 

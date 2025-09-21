@@ -43,7 +43,7 @@ async function sendApprovalNotification(userEmail, userName, approved, rejection
                         </div>
                         
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="${process.env.FRONTEND_URL || 'http://localhost:4000'}/sign_in.html" 
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:4000'}/Sign_in.html" 
                                style="background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
                                 Log In Now
                             </a>
@@ -137,7 +137,7 @@ async function sendNewRegistrationNotification(adminEmails, userData) {
                     </div>
                     
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="${process.env.FRONTEND_URL || 'http://localhost:4000'}/admin_dashboard.html" 
+                        <a href="${process.env.FRONTEND_URL || 'http://localhost:4000'}/Admin_dashboard.html" 
                            style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
                             Review Registration
                         </a>

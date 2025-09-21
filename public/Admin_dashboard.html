@@ -1843,7 +1843,7 @@ function showComplaintDetailsModal(complaint) {
             if (notif.link && notif.link.trim()) {
   closeNotificationDropdown();
   setTimeout(() => {
-    if (notif.link.startsWith('/admin_dashboard.html')) {
+    if (notif.link.startsWith('/Admin_dashboard.html')) {
       window.location.href = notif.link;
     } else {
       console.warn('Notification link not valid for admin dashboard:', notif.link);
@@ -2262,11 +2262,11 @@ async function handleEditInternSubmit(event) {
                 } catch (e) {
                     console.error('Error parsing stored user data:', e);
                     sessionStorage.removeItem('currentUser'); // Clear corrupt data
-                    showModal('Session Error', 'Corrupted user session data. Please log in again.', '/sign_in.html');
+                    showModal('Session Error', 'Corrupted user session data. Please log in again.', '/Sign_in.html');
                 }
             } else {
                 // If no user in sessionStorage, assume not logged in or session expired
-                showModal('Session Expired', 'You are not logged in or your session has expired. Please log in.', '/sign_in.html');
+                showModal('Session Expired', 'You are not logged in or your session has expired. Please log in.', '/Sign_in.html');
                 loggedInUserNameSpan.textContent = 'Guest';
                 registerAdminLink.classList.add('hidden');
             }
@@ -2280,8 +2280,8 @@ async function handleEditInternSubmit(event) {
                         const response = await fetch(`${BACKEND_API_URL}/auth/logout`, { method: 'POST' });
                         if (response.ok) {
                             sessionStorage.removeItem('currentUser'); // Clear client-side session data
-                            showModal('Logged Out', 'You have been successfully logged out.', '/sign_in.html'); // Redirect to login
-                            window.location.href = '/sign_in.html';
+                            showModal('Logged Out', 'You have been successfully logged out.', '/Sign_in.html'); // Redirect to login
+                            window.location.href = '/Sign_in.html';
                         } else {
                             const errorData = await response.json();
                             showModal('Logout Error', errorData.message || 'Failed to log out.');

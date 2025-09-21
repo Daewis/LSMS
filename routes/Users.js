@@ -159,7 +159,7 @@ async function sendNotificationToAdmin(action, userId, data) {
       message,
       section,
       entityId,
-      link: `/admin_dashboard.html#${section}?id=${entityId || ''}`
+      link: `/Admin_dashboard.html#${section}?id=${entityId || ''}`
     });
     }
 

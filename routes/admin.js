@@ -638,7 +638,7 @@ router.post('/send-notification', isAuthenticated, isAdminOrSuperadmin, upload.s
       intern.user_id,
       sender.user_id,
       `New message: ${title}`,
-      `/user_dashboard.html#messages?id=${messageId}`
+      `/User_dashboard.html#messages?id=${messageId}`
     ]
   );
 }

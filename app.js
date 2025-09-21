@@ -8,7 +8,7 @@ import 'dotenv/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import pool from './db.js'; // Your database pool connection
+import {pool} from './db.js'; // Your database pool connection
 import UsersRoute from './routes/Users.js'; // For intern registration (and potentially other intern-specific actions)
 import AuthRoute from './routes/auth.js'; // Handles admin/superadmin/intern login, logout, role check
 import AdminRoute from './routes/admin.js'; // General admin functionalities (e.g., view interns, attendance)
@@ -69,14 +69,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
-
+/* 
 app.get('/User_dashboard.html', (req, res) => {
   if (!req.session.user && !req.session.admin) {
     return res.redirect('/Sign_in.html');
   }
   res.sendFile(path.join(process.cwd(), 'public', 'User_dashboard.html'));
 });
-
+**/
  
 
 // Start the server

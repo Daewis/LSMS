@@ -5,6 +5,7 @@ export const content = [
     "./public/Sign_in.html",
     "./public/Sign_up.html",
     "./public/User_dashboard.html",
+    "./public/Admin_dashboard.html",
     "./public/script.js",
 ];
 

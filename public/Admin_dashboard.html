@@ -3244,7 +3244,10 @@ async function renderPendingUsers(page = 1, limit = 10) {
     const pagination = document.getElementById('pending-users-pagination');
 
     try {
-        const response = await fetch(`/api/admin/pending-users?page=${page}&limit=${limit}`);
+       const response = await fetch('/api/admin/pending-users?page=1&limit=10', {
+  credentials: 'include', // Include cookies in the request
+});
+
         if (!response.ok) throw new Error('Failed to fetch pending users');
         
         const data = await response.json();

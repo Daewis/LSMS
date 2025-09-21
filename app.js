@@ -24,7 +24,17 @@ const app = express();
 //const PORT = process.env.PORT || 4000; // Use port from environment variable or default to 4000
 
 // Middleware
-app.use(cors()); // Enable CORS for cross-origin requests
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
+
+app.use((req, res, next) => {
+  console.log('Session user:', req.session?.user);
+  next();
+});
+
+
 app.use(bodyParser.json()); // Parse JSON request bodies
 app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded request bodies
 

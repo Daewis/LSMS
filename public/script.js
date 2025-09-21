@@ -72,7 +72,7 @@ function togglePasswordVisibility(input, openIcon, closedIcon) {
 }
 
 
-const BACKEND_API_URL = 'http://localhost:4000';
+//const BACKEND_API_URL = 'http://localhost:4000';
 
 // --- Logic for Sign_in.html form ---
 // Get elements at a global scope to be accessible for all listeners
@@ -96,7 +96,7 @@ if (signInForm) {
         }
 
         try {
-            const response = await fetch(`${BACKEND_API_URL}/auth/login`, {
+            const response = await fetch('/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

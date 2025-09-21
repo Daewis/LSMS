@@ -64,6 +64,24 @@ app.use('/forgot_password', ForgotPasswordRoute); // Forgot password routes
 app.use('/pending_approval', PendingApprovalRoute); // Pending approval routes
 
 
+// Middleware to check if user is authenticated (logged in)
+function isAuthenticated(req, res, next) {
+    if (!req.session?.user) {
+        return res.status(401).json({ success: false, message: 'Not authenticated.' });
+    }
+    next();
+}
+
+// Middleware to check if user has 'admin' or 'superadmin' role
+function isAdminOrSuperadmin(req, res, next) {
+    const userRole = req.session?.user?.role;
+    if (userRole === 'admin' || userRole === 'superadmin') {
+        next();
+    } else {
+        res.status(403).json({ success: false, message: 'Access denied: Admin privileges required.' });
+    }
+}
+
 // Route root to home.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'home.html'));

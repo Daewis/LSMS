@@ -5,6 +5,8 @@ import cors from 'cors';
 import session from 'express-session'; // Import express-session
 import pgSession from 'connect-pg-simple'; // Import the PostgreSQL session store
 import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import pool from './db.js'; // Your database pool connection
 import UsersRoute from './routes/Users.js'; // For intern registration (and potentially other intern-specific actions)
@@ -13,6 +15,10 @@ import AdminRoute from './routes/admin.js'; // General admin functionalities (e.
 import SuperadminRoute from './routes/superadmin.js'; // Superadmin specific actions (e.g., register admins)
 import ForgotPasswordRoute from './routes/forgot_password.js';
 import PendingApprovalRoute from './routes/pending_approval.js';
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 4000; // Use port from environment variable or default to 4000
@@ -24,7 +30,7 @@ app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded request
 
 // Serve static files from the 'public' directory
 // This allows your HTML, CSS, client-side JS, and images to be served
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure express-session with PostgreSQL store
 const PgSession = pgSession(session); // Initialize connect-pg-simple
@@ -35,7 +41,7 @@ app.use(session({
         pool: pool,                 // Your PostgreSQL connection pool
         tableName: 'session'        // The table where session data will be stored
     }),
-    secret: process.env.SESSION_SECRET || 'a_very_secret_key_for_session', // **IMPORTANT: Use a strong, random key from environment variable in production**
+    secret: process.env.SESSION_SECRET, // **IMPORTANT: Use a strong, random key from environment variable in production**
     resave: false,                      // Don't save session if unmodified
     saveUninitialized: false,           // Don't create session until something stored
     cookie: {
@@ -45,8 +51,6 @@ app.use(session({
         sameSite: 'Lax'                     // Protection against CSRF attacks. 'Lax' allows some cross-site requests.
     }
 }));
-
-
 
 
 
@@ -69,18 +73,17 @@ function requireLogin(req, res, next) {
   next();
 }
 
-app.get('/dashboard', (req, res) => {
-  if (!req.session.user) {
+app.get('/user_dashboard', (req, res) => {
+  if (!req.session.user && !req.session.admin) {
     return res.redirect('/sign_in.html');
   }
-  //res.sendFile(path.join(process.cwd(), 'public', 'dashboard.html'));
-  res.sendFile(path.join(__dirname, 'public/user_dashboard.html'));
+  res.sendFile(path.join(process.cwd(), 'public', 'user_dashboard.html'));
 });
 
-
-// Basic route for the root URL
+ 
+// Route root to home.html
 app.get('/', (req, res) => {
-  return res.redirect('/home.html');
+  res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
 

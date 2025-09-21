@@ -72,7 +72,7 @@ app.get('/', (req, res) => {
 
 app.get('/User_dashboard.html', (req, res) => {
   if (!req.session.user && !req.session.admin) {
-    return res.redirect('/sign_in.html');
+    return res.redirect('/Sign_in.html');
   }
   res.sendFile(path.join(process.cwd(), 'public', 'User_dashboard.html'));
 });

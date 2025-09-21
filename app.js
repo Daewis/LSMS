@@ -69,15 +69,22 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
-/* 
-app.get('/User_dashboard.html', (req, res) => {
-  if (!req.session.user && !req.session.admin) {
+
+app.get('/User_dashboard.html', isAuthenticated, (req, res) => {
+  if (!req.session.user) {
     return res.redirect('/Sign_in.html');
   }
   res.sendFile(path.join(process.cwd(), 'public', 'User_dashboard.html'));
 });
-**/
- 
+
+
+ app.get('/Admin_dashboard.html', isAuthenticated, isAdminOrSuperadmin, (req, res) => {
+  if (!req.session.user) {
+    return res.redirect('/Sign_in.html');
+  }
+  res.sendFile(path.join(process.cwd(), 'public', 'Admin_dashboard.html'));
+});
+
 
 // Start the server
 app.listen(4000, '0.0.0.0', () => {

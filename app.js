@@ -8,7 +8,7 @@ import 'dotenv/config';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import {pool} from './db.js'; // Your database pool connection
+import pool from './db.js'; // Your database pool connection
 import UsersRoute from './routes/Users.js'; // For intern registration (and potentially other intern-specific actions)
 import AuthRoute from './routes/auth.js'; // Handles admin/superadmin/intern login, logout, role check
 import AdminRoute from './routes/admin.js'; // General admin functionalities (e.g., view interns, attendance)

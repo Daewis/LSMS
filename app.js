@@ -153,6 +153,7 @@ const app = express();
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:4000',
+    'https://lisms.vercel.app',
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
     // Since we're deploying everything to one domain, we might not need FRONTEND_URL
     // But keep it for flexibility

@@ -149,35 +149,42 @@ const app = express();
 
 // ===== CRITICAL FIXES FOR VERCEL =====
 
-// 1. Enhanced CORS configuration
+// Updated CORS configuration for single-domain deployment
 const allowedOrigins = [
     'http://localhost:3000',
-    'http://localhost:4000', 
-    process.env.FRONTEND_URL,
+    'http://localhost:4000',
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-    // Add your actual Vercel domain here
-    'https://your-app-name.vercel.app'
-].filter(Boolean); // Remove null/undefined values
+    // Since we're deploying everything to one domain, we might not need FRONTEND_URL
+    // But keep it for flexibility
+    process.env.FRONTEND_URL
+].filter(Boolean);
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
+        console.log('CORS Check - Origin:', origin);
+        console.log('Allowed Origins:', allowedOrigins);
+        
+        // Allow requests with no origin (same-origin requests)
+        if (!origin) {
+            console.log('No origin - allowing same-origin request');
+            return callback(null, true);
+        }
         
         if (allowedOrigins.indexOf(origin) !== -1) {
+            console.log('Origin allowed:', origin);
             callback(null, true);
         } else {
             console.warn('CORS blocked origin:', origin);
-            callback(null, true); // In development, allow all origins
-            // In production, you might want to be more strict:
-            // callback(new Error('Not allowed by CORS'));
+            // In production with single domain, this shouldn't happen often
+            callback(null, true); // Allow for now, change to false if needed
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
     exposedHeaders: ['Set-Cookie']
 }));
+
 
 // 2. Enhanced CORS headers middleware (place BEFORE session middleware)
 app.use((req, res, next) => {
@@ -227,7 +234,7 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24, // 24 hours
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // CRITICAL FOR VERCEL
+        sameSite:  'lax', // CRITICAL FOR VERCEL
         domain: process.env.NODE_ENV === 'production' 
             ? process.env.COOKIE_DOMAIN || undefined 
             : undefined

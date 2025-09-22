@@ -10,8 +10,33 @@
     {
       "src": "/(.*)",
       "dest": "app.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "app.js"
+    },
+    {
+      "src": "/auth/(.*)",
+      "dest": "app.js"
+    },
+    {
+      "src": "/users/(.*)",
+      "dest": "app.js"
+    },
+    {
+      "src": "/forgot_password/(.*)",
+      "dest": "app.js"
+    },
+    {
+      "src": "/pending_approval/(.*)",
+      "dest": "app.js"
     }
-  ]
+  ],
+  "functions": {
+    "app.js": {
+      "maxDuration": 30
+    }
+  }
 }
 
 

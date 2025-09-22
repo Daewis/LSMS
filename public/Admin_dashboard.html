@@ -642,8 +642,14 @@ document.head.appendChild(styleSheet);
 
 
 
-// Helper function for authenticated API calls
-async function authenticatedFetch(url, options = {}) {
+// Remove or update the BACKEND_API_URL line in your HTML files
+// Since everything is on the same domain now, we can use relative URLs
+
+// Updated authenticatedFetch function - now much simpler
+async function authenticatedFetch(endpoint, options = {}) {
+    // Use relative URLs since frontend and backend are on same domain
+    const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    
     const defaultOptions = {
         credentials: 'include', // This is crucial for sending cookies
         headers: {
@@ -652,16 +658,23 @@ async function authenticatedFetch(url, options = {}) {
         }
     };
     
-    const response = await fetch(url, { ...defaultOptions, ...options });
+    console.log('Making request to:', url);
     
-    // Auto-redirect on auth failure
-    if (response.status === 401 || response.status === 403) {
-        sessionStorage.removeItem('currentUser');
-        window.location.href = '/Sign_in.html';
-        return null;
+    try {
+        const response = await fetch(url, { ...defaultOptions, ...options });
+        
+        // Auto-redirect on auth failure
+        if (response.status === 401 || response.status === 403) {
+            sessionStorage.removeItem('currentUser');
+            window.location.href = '/Sign_in.html';
+            return null;
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
     }
-    
-    return response;
 }
 
 // Enhanced session validation

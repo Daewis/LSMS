@@ -234,10 +234,8 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24, // 24 hours
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
         httpOnly: true,
-        sameSite:  'lax', // CRITICAL FOR VERCEL
-        domain: process.env.NODE_ENV === 'production' 
-            ? process.env.COOKIE_DOMAIN || undefined 
-            : undefined
+        sameSite:  'lax' // CRITICAL FOR VERCEL
+        
     }
 }));
 

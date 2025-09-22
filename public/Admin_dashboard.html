@@ -509,6 +509,7 @@
         // Initialize Lucide icons
         lucide.createIcons();
         
+    
         // DOM elements
         const mainContentArea = document.getElementById('main-content-area');
         const registerAdminLink = document.getElementById('registerAdminLink');
@@ -641,6 +642,47 @@ document.head.appendChild(styleSheet);
 
 
 
+// Helper function for authenticated API calls
+async function authenticatedFetch(url, options = {}) {
+    const defaultOptions = {
+        credentials: 'include', // This is crucial for sending cookies
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    };
+    
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    
+    // Auto-redirect on auth failure
+    if (response.status === 401 || response.status === 403) {
+        sessionStorage.removeItem('currentUser');
+        window.location.href = '/Sign_in.html';
+        return null;
+    }
+    
+    return response;
+}
+
+// Enhanced session validation
+async function validateSession() {
+    try {
+        const response = await authenticatedFetch('/auth/validate-session');
+        if (response && response.ok) {
+            const userData = await response.json();
+            sessionStorage.setItem('currentUser', JSON.stringify(userData));
+            return userData;
+        } else {
+            sessionStorage.removeItem('currentUser');
+            throw new Error('Session invalid');
+        }
+    } catch (error) {
+        sessionStorage.removeItem('currentUser');
+        throw error;
+    }
+}
+
+
 // Move this function OUTSIDE and BEFORE the DOMContentLoaded event listener
 /**
  * Fetches intern data with pagination and renders the intern list view.
@@ -683,13 +725,11 @@ async function loadInternsList(page = 1, limit = 5) {
     `;
 
     try {
-        // Fetch data with pagination parameters
-        const response = await fetch('/api/admin/view-interns?page=${page}&limit=${limit}', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        const response = await authenticatedFetch(`/api/admin/view-interns?page=${page}&limit=${limit}`, {
+            method: 'GET'
         });
+        
+        if (!response) return; // Already redirected due to auth failure
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -697,6 +737,7 @@ async function loadInternsList(page = 1, limit = 5) {
 
         const data = await response.json();
         hideSpinner();
+
 
         const internsTableBody = document.getElementById('internsTableBody');
         const paginationControls = document.getElementById('pagination-controls');
@@ -928,13 +969,17 @@ function setBreadcrumb(section, subSection = null) {
 
              try {
         // Fetch paginated data from the updated backend route
-        const res = await fetch('/api/admin/leave-requests?page=${page}&limit=${limit}', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        const res = await authenticatedFetch('/api/admin/leave-requests?page=${page}&limit=${limit}', {
+           method: 'GET',
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            
+          
+         if (!response) return; // Already redirected due to auth failure
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
         const data = await res.json();
 
         loadingPermissions.remove();
@@ -1338,15 +1383,14 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
                 day: 'numeric'
             });
 
-            // Start the fetching process
             try {
-               // showSpinner();
-                // Replace with your actual admin API endpoint
-                const res = await fetch('/api/admin/dashboard/summary');
-                if (!res.ok) {
-                    throw new Error("Failed to fetch dashboard data");
-                }
-                const data = await res.json();
+        const res = await authenticatedFetch('/api/admin/dashboard/summary');
+        if (!res) return; // Already redirected due to auth failure
+        if (!res.ok) {
+            throw new Error("Failed to fetch dashboard data");
+        }
+        const data = await res.json();
+
 
                 // Update the dashboard with fetched data
                 document.getElementById('total-interns-count').textContent = data.stats.total_interns ?? "0";
@@ -1734,16 +1778,14 @@ function showComplaintDetailsModal(complaint) {
             }
 
             try {
-                const response = await fetch('/api/admin/admin-notifications', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+        const response = await authenticatedFetch('/api/admin/admin-notifications', {
+            method: 'GET'
+        });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
+        if (!response) return; // Already redirected due to auth failure
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
                 const data = await response.json();
                 notifications = Array.isArray(data) ? data : [];
@@ -2059,6 +2101,25 @@ function showComplaintDetailsModal(complaint) {
         });
 
 
+
+// 5. QUICK TEST FUNCTION
+async function testAuth() {
+    console.log('Testing authentication...');
+    try {
+        const response = await authenticatedFetch('/auth/validate-session');
+        if (response) {
+            const data = await response.json();
+            console.log('✅ Auth test successful:', data);
+        } else {
+            console.log('❌ Auth test failed: No response');
+        }
+    } catch (error) {
+        console.error('❌ Auth test failed:', error);
+    }
+}
+
+
+
         /**
  * Fetches a single intern's details from the backend and renders the edit form.
  * @param {string} internId - The ID of the intern to fetch.
@@ -2252,50 +2313,46 @@ async function handleEditInternSubmit(event) {
 }
         
         document.addEventListener('DOMContentLoaded', async () => {
-            // --- Retrieve User Session Data from sessionStorage ---
-            let currentUser = null;
-            let isAdminOrSuperadmin = false;
+    let currentUser = null;
+    let isAdminOrSuperadmin = false;
 
-            const storedUser = sessionStorage.getItem('currentUser');
-            if (storedUser) {
-                try {
-                    currentUser = JSON.parse(storedUser);
-                    isAdminOrSuperadmin = (currentUser.role === 'admin' || currentUser.role === 'superadmin'); // Admins and Superadmins have admin access
-                    
-                    // Update logged-in user display
-                    if (loggedInUserNameSpan) {
-                        const displayName = currentUser.first_name && currentUser.last_name 
-                            ? `${currentUser.first_name} ${currentUser.last_name}`
-                            : currentUser.email;
-                        loggedInUserNameSpan.textContent = displayName;
-                    }
-
-                    // Show/hide Register Admin link based on actual admin role
-                   // Show/hide Register Admin link based only on superadmin role
-                    if (currentUser.role === 'superadmin') {
-                      registerAdminLink.classList.remove('hidden');
-                                } else {
-                                     registerAdminLink.classList.add('hidden');
-                            }
-                } catch (e) {
-                    console.error('Error parsing stored user data:', e);
-                    sessionStorage.removeItem('currentUser'); // Clear corrupt data
-                    showModal('Session Error', 'Corrupted user session data. Please log in again.', '/Sign_in.html');
-                }
-            } else {
-                // If no user in sessionStorage, assume not logged in or session expired
-                showModal('Session Expired', 'You are not logged in or your session has expired. Please log in.', '/Sign_in.html');
-                loggedInUserNameSpan.textContent = 'Guest';
-                registerAdminLink.classList.add('hidden');
+    // First, try to validate session with server
+    try {
+        currentUser = await validateSession();
+        if (currentUser) {
+            isAdminOrSuperadmin = (currentUser.role === 'admin' || currentUser.role === 'superadmin');
+            
+            // Update logged-in user display
+            if (loggedInUserNameSpan) {
+                const displayName = currentUser.first_name && currentUser.last_name 
+                    ? `${currentUser.first_name} ${currentUser.last_name}`
+                    : currentUser.email;
+                loggedInUserNameSpan.textContent = displayName;
             }
 
-
+            // Show/hide Register Admin link based on superadmin role
+            if (currentUser.role === 'superadmin') {
+                registerAdminLink.classList.remove('hidden');
+            } else {
+                registerAdminLink.classList.add('hidden');
+            }
+        } else {
+            throw new Error('No valid session');
+        }
+    } catch (e) {
+        console.error('Session validation failed:', e);
+        sessionStorage.removeItem('currentUser');
+        showModal('Session Expired', 'Please log in again.', () => {
+            window.location.href = '/Sign_in.html';
+        });
+        return;
+    }
             // --- Logout functionality ---
             if (signOutLink) {
                 signOutLink.addEventListener('click', async (event) => {
                     event.preventDefault();
                     try {
-                        const response = await fetch(`/auth/logout`, { method: 'POST' });
+                        const response = await fetch(`/auth/logout`, { method: 'POST', credentials: 'include' });
                         if (response.ok) {
                             sessionStorage.removeItem('currentUser'); // Clear client-side session data
                             showModal('Logged Out', 'You have been successfully logged out.', '/Sign_in.html'); // Redirect to login
@@ -3244,12 +3301,16 @@ async function renderPendingUsers(page = 1, limit = 10) {
     const pagination = document.getElementById('pending-users-pagination');
 
     try {
-       const response = await fetch('/api/admin/pending-users?page=1&limit=10', {
-  credentials: 'include', // Include cookies in the request
-});
-
-        if (!response.ok) throw new Error('Failed to fetch pending users');
+        const response = await authenticatedFetch(`/api/admin/pending-users?page=${page}&limit=${limit}`, {
+            method: 'GET'
+        });
         
+        if (!response) return; // Already redirected due to auth failure
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error('Failed to fetch pending users');
+        }
+
         const data = await response.json();
         document.getElementById('loading-pending-users').remove();
 
@@ -3558,15 +3619,15 @@ async function handleUserRejection(e) {
             
             // Load interns list by default for admins and superadmins
             if (isAdminOrSuperadmin) {
-                renderDashboard();
-            } else {
-                mainContentArea.innerHTML = `
-                    <div class="border border-dashed border-gray-300 rounded-lg p-6 h-full flex items-center justify-center text-gray-400 text-xl">
-                        Select an option from the sidebar.
-                    </div>
-                `;
-            }
-        });
+        renderDashboard();
+    } else {
+        mainContentArea.innerHTML = `
+            <div class="border border-dashed border-gray-300 rounded-lg p-6 h-full flex items-center justify-center text-gray-400 text-xl">
+                Access Denied: Admin privileges required.
+            </div>
+        `;
+    }
+});
         
     </script>
 </body>

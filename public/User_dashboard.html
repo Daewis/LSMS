@@ -1140,12 +1140,14 @@
 
             async function fetchSessionUserData() {
 
-            try {
-           const res = await fetch('/users/intern-info');
-                  if (res.status === 401) {
-                     window.location.href = '/Sign_in.html';
-                     return null;
-                    }
+             try {
+        const res = await fetch('/users/intern-info', {
+            credentials: 'include'  // Add this
+        });
+        if (res.status === 401) {
+            window.location.href = '/Sign_in.html';
+            return null;
+        }
 
                  if (!res.ok) throw new Error("Failed to fetch session user data.");
              const data = await res.json();
@@ -1219,10 +1221,12 @@ async function loadDashboard() {
 
     if (!userData) return;
 
-    try {
-        // Fetch stats
-        const res = await fetch(`/users/dashboard/summary?userId=${userData.user_id}`);
-        if (!res.ok) throw new Error("Failed to fetch dashboard stats");
+   try {
+    // Fetch stats
+    const res = await fetch(`/users/dashboard/summary?userId=${userData.user_id}`, {
+        credentials: 'include'  // Add this
+    });
+    if (!res.ok) throw new Error("Failed to fetch dashboard stats");
         const stats = await res.json();
         
 
@@ -1290,27 +1294,26 @@ loadDashboard();
 
             // Handle logout link click
             logoutLink.addEventListener('click', async (e) => {
-                e.preventDefault(); 
-                try {
-                    const response = await fetch('/auth/logout', { 
-                        method: 'POST',
-                    });
-                    const result = await response.json();
-                    if (response.ok && result.success) {
-                        console.log('Logged out successfully.');
-                        sessionUserData = null; 
-                        window.location.href = 'Sign_in.html'; 
-                    } else {
-                        console.error('Logout failed:', result.message);
-                        showMessage(`Logout failed: ${result.message || 'Please try again.'}`, true, messageContainer, messageText); 
-                    }
-                } catch (error) {
-                    console.error('Error during logout:', error);
-                    showMessage(`An error occurred during logout: ${error.message}`, true, messageContainer, messageText); 
-                }
-            });
-
-
+    e.preventDefault(); 
+    try {
+        const response = await fetch('/auth/logout', { 
+            method: 'POST',
+            credentials: 'include'  // Add this
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+            console.log('Logged out successfully.');
+            sessionUserData = null; 
+            window.location.href = 'Sign_in.html'; 
+        } else {
+            console.error('Logout failed:', result.message);
+            showMessage(`Logout failed: ${result.message || 'Please try again.'}`, true, messageContainer, messageText); 
+        }
+    } catch (error) {
+        console.error('Error during logout:', error);
+        showMessage(`An error occurred during logout: ${error.message}`, true, messageContainer, messageText); 
+    }
+});
 
 
             // ===== PROFILE DROPDOWN (tap/click) =====
@@ -1384,11 +1387,11 @@ if (fileInputProfile) {
     formData.append("profileImage", file);
 
      try {
-      const res = await fetch("/users/upload-profile-picture", {
-        method: "POST",
-        body: formData,
-        credentials: "include"
-      });
+     const response = await fetch('/users/upload-project-file', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include'  // Add this
+});
 
       const data = await res.json();
       if (data.success) {
@@ -1491,12 +1494,13 @@ async function fetchNotifications(showLoading = false) {
     }
 
     try {
-        const response = await fetch('/users/notifications', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+       const response = await fetch('/users/notifications', {
+    method: 'GET',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    credentials: 'include'  // Add this
+});
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -2420,9 +2424,10 @@ window.addEventListener('hashchange', handleHashNavigation);
 
                 try {
                     const response = await fetch(`/users/submit-logbook-report`, {
-                        method: 'POST',
-                        body: formData,
-                    });
+    method: 'POST',
+    body: formData,
+    credentials: 'include'  // Add this
+});
 
                     const result = await response.json();
                     
@@ -2560,9 +2565,10 @@ complaintSuggestionForm.addEventListener('submit', async (e) => {
 
     try {
         const response = await fetch(`/users/submit-complaint-suggestion`, {
-            method: 'POST',
-            body: formData,
-        });
+    method: 'POST',
+    body: formData,
+    credentials: 'include'  // Add this
+});
 
         const result = await response.json();
 
@@ -3192,9 +3198,10 @@ try {
                 try {
                     // This is a placeholder. You'll need to implement this endpoint on your backend.
                     const response = await fetch('/users/submit-leave-request', {
-                        method: 'POST',
-                        body: formData,
-                    });
+    method: 'POST',
+    body: formData,
+    credentials: 'include'  // Add this
+});
 
                     const result = await response.json();
 

@@ -305,6 +305,28 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Validate session endpoint - Add this to your auth.js router
+router.get('/validate-session', (req, res) => {
+    // Check if user session exists
+    if (!req.session || !req.session.user) {
+        return res.status(401).json({ 
+            success: false, 
+            message: 'No active session found' 
+        });
+    }
+
+    // Session exists, return user data
+    res.status(200).json({
+        success: true,
+        user_id: req.session.user.user_id,
+        email: req.session.user.email,
+        role: req.session.user.role,
+        first_name: req.session.user.first_name,
+        middle_name: req.session.user.middle_name,
+        last_name: req.session.user.last_name
+    });
+});
+
 // POST /logout - Destroys session and clears cookie
 router.post('/logout', (req, res) => {
     req.session.destroy(err => {

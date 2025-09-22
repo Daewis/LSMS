@@ -31,12 +31,7 @@
       "src": "/pending_approval/(.*)",
       "dest": "app.js"
     }
-  ],
-  "functions": {
-    "app.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
 
 

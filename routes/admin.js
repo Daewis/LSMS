@@ -1459,4 +1459,159 @@ router.delete('/reject-user/:userId', isAdminOrSuperadmin, async (req, res) => {
 
 
 
+// For recent activities
+router.get('/dashboard/recent-activities', isAuthenticated, isAdminOrSuperadmin, async (req, res) => {
+    const limit = parseInt(req.query.limit) || 5;
+    let client;
+
+    try {
+        client = await pool.connect();
+
+        // Fixed query with consistent data types
+        const activitiesQuery = `
+            WITH recent_reports AS (
+                SELECT 
+                    'report' as activity_type,
+                    u.first_name,
+                    u.last_name,
+                    u.email,
+                    'Submitted weekly report' as description,
+                    lr.submitted_at as activity_time,
+                    lr.week_date::text as metadata1,
+                    COALESCE(lr.grade, 'Not graded') as metadata2,
+                    NULL::text as metadata3,
+                    NULL::text as metadata4
+                FROM logbook_reports lr
+                JOIN users u ON lr.user_id = u.user_id
+                WHERE lr.submitted_at IS NOT NULL
+                ORDER BY lr.submitted_at DESC
+                LIMIT 10
+            ),
+            recent_projects AS (
+                SELECT 
+                    'project' as activity_type,
+                    u.first_name,
+                    u.last_name,
+                    u.email,
+                    CONCAT('Uploaded project: ', p.project_name) as description,
+                    p.uploaded_at as activity_time,
+                    p.project_name as metadata1,
+                    'Completed' as metadata2,
+                    NULL::text as metadata3,
+                    NULL::text as metadata4
+                FROM user_projects p
+                JOIN users u ON p.user_id = u.user_id
+                WHERE p.uploaded_at IS NOT NULL
+                ORDER BY p.uploaded_at DESC
+                LIMIT 10
+            ),
+            recent_leave_requests AS (
+                SELECT 
+                    'leave' as activity_type,
+                    u.first_name,
+                    u.last_name,
+                    u.email,
+                    CONCAT('Requested ', lr.leave_type, ' leave') as description,
+                    lr.requested_at as activity_time,
+                    lr.leave_type as metadata1,
+                    COALESCE(lr.status, 'Pending') as metadata2,
+                    lr.start_date::text as metadata3,
+                    lr.end_date::text as metadata4
+                FROM leave_requests lr
+                JOIN users u ON lr.user_id = u.user_id
+                WHERE lr.requested_at IS NOT NULL
+                ORDER BY lr.requested_at DESC
+                LIMIT 10
+            ),
+            recent_complaints AS (
+                SELECT 
+                    'complaint' as activity_type,
+                    u.first_name,
+                    u.last_name,
+                    u.email,
+                    CONCAT('Submitted complaint: ', LEFT(c.subject, 30), '...') as description,
+                    c.submitted_at as activity_time,
+                    c.subject as metadata1,
+                    COALESCE(c.status, 'Pending') as metadata2,
+                    NULL::text as metadata3,
+                    NULL::text as metadata4
+                FROM complaints_suggestions c
+                JOIN users u ON c.user_id = u.user_id
+                WHERE c.submitted_at IS NOT NULL
+                ORDER BY c.submitted_at DESC
+                LIMIT 10
+            )
+            SELECT 
+                activity_type,
+                first_name,
+                last_name,
+                email,
+                description,
+                activity_time,
+                metadata1,
+                metadata2,
+                metadata3,
+                metadata4
+            FROM (
+                SELECT * FROM recent_reports
+                UNION ALL
+                SELECT * FROM recent_projects
+                UNION ALL  
+                SELECT * FROM recent_leave_requests
+                UNION ALL
+                SELECT * FROM recent_complaints
+            ) combined_activities
+            ORDER BY activity_time DESC
+            LIMIT $1
+        `;
+
+        const result = await client.query(activitiesQuery, [limit]);
+
+        res.json({
+            success: true,
+            activities: result.rows.map(activity => ({
+                type: activity.activity_type,
+                name: `${activity.first_name} ${activity.last_name}`,
+                email: activity.email,
+                description: activity.description,
+                timestamp: activity.activity_time,
+                timeAgo: getTimeAgo(activity.activity_time),
+                metadata: {
+                    primary: activity.metadata1,
+                    status: activity.metadata2,
+                    startDate: activity.metadata3,
+                    endDate: activity.metadata4
+                }
+            }))
+        });
+
+    } catch (error) {
+        console.error('Error fetching recent activities:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch recent activities',
+            error: process.env.NODE_ENV !== 'production' ? error.message : undefined
+        });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+function getTimeAgo(timestamp) {
+    const now = new Date();
+    const activityTime = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - activityTime) / 1000);
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    return activityTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+
+
 export default router;

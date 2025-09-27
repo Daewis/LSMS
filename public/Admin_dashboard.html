@@ -642,8 +642,6 @@ document.head.appendChild(styleSheet);
 
 
 
-// Remove or update the BACKEND_API_URL line in your HTML files
-// Since everything is on the same domain now, we can use relative URLs
 
 // Updated authenticatedFetch function - now much simpler
 async function authenticatedFetch(endpoint, options = {}) {
@@ -696,118 +694,124 @@ async function validateSession() {
 }
 
 
-// Move this function OUTSIDE and BEFORE the DOMContentLoaded event listener
 /**
  * Fetches intern data with pagination and renders the intern list view.
- * @param {number} page - The current page number to fetch.
- * @param {number} limit - The number of interns per page.
+ * Uses a lightweight skeleton loader for faster perceived performance.
+ * @param {number} page - Page number to fetch.
+ * @param {number} limit - Items per page.
  */
 async function loadInternsList(page = 1, limit = 5) {
-    showSpinner();
-    setBreadcrumb('Interns');
+  setBreadcrumb('Interns');
 
-    // Construct the HTML for the entire intern list view
-    mainContentArea.innerHTML = `
-        <div class="flex flex-col h-full bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Intern List</h2>
-            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">ID</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Name</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matric No.</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Institution</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acceptance Letter</th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="internsTableBody" class="bg-white divide-y divide-gray-200">
-                    </tbody>
-                </table>
-            </div>
-            
-            <div id="pagination-controls" class="flex justify-center mt-4 space-x-2">
-            </div>
-        </div>
-    `;
+  // === Immediate skeleton UI (no spinner pop-in) ===
+  mainContentArea.innerHTML = `
+    <div class="min-h-full bg-gray-100 px-6 py-4">
+      <div class="max-w-7xl mx-auto">
+        <!-- breadcrumb is already inserted by setBreadcrumb -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mt-6">
+          <h1 class="text-3xl font-bold mb-6 text-gray-800">Intern List</h1>
 
-    try {
-        const response = await authenticatedFetch(`/api/admin/view-interns?page=${page}&limit=${limit}`, {
-            method: 'GET'
-        });
-        
-        if (!response) return; // Already redirected due to auth failure
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        }
+          <!-- Table skeleton -->
+          <div id="interns-skeleton" class="space-y-4 animate-pulse">
+            ${Array.from({length: 5}).map(() => `
+              <div class="h-6 bg-gray-200 rounded"></div>
+            `).join('')}
+          </div>
 
-        const data = await response.json();
-        hideSpinner();
-
-
-        const internsTableBody = document.getElementById('internsTableBody');
-        const paginationControls = document.getElementById('pagination-controls');
-
-        if (data.interns.length > 0) {
-            internsTableBody.innerHTML = data.interns.map(intern => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${intern.user_id}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">${intern.first_name || 'N/A'}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">${intern.middle_name || 'N/A'}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">${intern.last_name || 'N/A'}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">${intern.matric_number || 'N/A'}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">${intern.institution || 'N/A'}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">${intern.phone_number || 'N/A'}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">${intern.email || 'N/A'}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
-                        ${intern.user_image_url ?
-                            `<img src="${intern.user_image_url}" alt="User Image" class="h-10 w-10 rounded-full object-cover">` :
-                            `<span class="text-gray-400">No Image</span>`
-                        }
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">
-                        ${intern.acceptance_letter_url ?
-                            `<a href="${intern.acceptance_letter_url}" target="_blank" class="text-blue-600 hover:underline">View Letter</a>` :
-                            `<span class="text-gray-400">No Letter</span>`
-                        }
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button class="text-indigo-600 hover:text-indigo-900 edit-intern-button" data-intern-id="${intern.user_id}">Edit</button>
-                    </td>
+          <!-- Real table will replace skeleton -->
+          <div id="interns-table-wrapper" class="hidden overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">First Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Middle Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matric No.</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Institution</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Image</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acceptance Letter</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
-            `).join('');
-            
-            // Render pagination controls and pass loadInternsList as the renderFunction
-            renderPagination(paginationControls, data.current_page, data.total_pages, limit, loadInternsList);
-                
+              </thead>
+              <tbody id="internsTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+          </div>
 
+          <div id="pagination-controls" class="flex justify-center mt-4 space-x-2"></div>
+        </div>
+      </div>
+    </div>
+  `;
 
-            // Attach event listeners to the new "Edit" buttons
-            document.querySelectorAll('.edit-intern-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const internIdToEdit = e.currentTarget.dataset.internId;
-                    fetchAndRenderInternDetails(internIdToEdit);
-                });
-            });
-        } else {
-            internsTableBody.innerHTML = `<tr><td colspan="11" class="text-center text-gray-500 p-8">No interns found.</td></tr>`;
-            paginationControls.innerHTML = '';
-        }
+  const tableWrapper = document.getElementById('interns-table-wrapper');
+  const internsTableBody = document.getElementById('internsTableBody');
+  const paginationControls = document.getElementById('pagination-controls');
 
-    } catch (error) {
-        hideSpinner();
-        console.error('Failed to fetch interns:', error);
-        mainContentArea.innerHTML = `<p class="text-red-500 text-center text-lg">Error: ${error.message}</p>`;
+  try {
+    const response = await authenticatedFetch(`/api/admin/view-interns?page=${page}&limit=${limit}`, {
+      method: 'GET'
+    });
+
+    if (!response) return; // auth redirect already handled
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-}
 
+    const data = await response.json();
+
+    // Hide skeleton, show table
+    document.getElementById('interns-skeleton').remove();
+    tableWrapper.classList.remove('hidden');
+
+    if (!data.interns.length) {
+      internsTableBody.innerHTML =
+        `<tr><td colspan="11" class="text-center text-gray-500 p-8">No interns found.</td></tr>`;
+      paginationControls.innerHTML = '';
+      return;
+    }
+
+    internsTableBody.innerHTML = data.interns.map(intern => `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-4 text-sm font-medium text-gray-900">${intern.user_id}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.first_name || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.middle_name || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.last_name || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.matric_number || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.institution || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.phone_number || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.email || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">
+          ${intern.user_image_url
+            ? `<img src="${intern.user_image_url}" alt="User Image" class="h-10 w-10 rounded-full object-cover">`
+            : `<span class="text-gray-400">No Image</span>`}
+        </td>
+        <td class="px-4 py-4 text-sm text-gray-800">
+          ${intern.acceptance_letter_url
+            ? `<a href="${intern.acceptance_letter_url}" target="_blank" class="text-blue-600 hover:underline">View Letter</a>`
+            : `<span class="text-gray-400">No Letter</span>`}
+        </td>
+        <td class="px-4 py-4 text-right text-sm font-medium">
+          <button class="text-indigo-600 hover:text-indigo-900 edit-intern-button" data-intern-id="${intern.user_id}">Edit</button>
+        </td>
+      </tr>
+    `).join('');
+
+    renderPagination(paginationControls, data.current_page, data.total_pages, limit, loadInternsList);
+
+    document.querySelectorAll('.edit-intern-button').forEach(btn => {
+      btn.addEventListener('click', e => fetchAndRenderInternDetails(e.currentTarget.dataset.internId));
+    });
+
+  } catch (err) {
+    console.error('Failed to fetch interns:', err);
+    mainContentArea.innerHTML =
+      `<p class="text-red-500 text-center text-lg">Error: ${err.message}</p>`;
+  }
+}
 
 function renderPageHeader(crumbs = []) {
     const pageHeader = document.getElementById('pageHeader');
@@ -966,14 +970,23 @@ function setBreadcrumb(section, subSection = null) {
 
     
             mainContentArea.innerHTML = `
-                <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-xl">
-            <h1 class="text-3xl font-bold mb-6 text-gray-800">Permission Requests</h1>
-            <div id="permissions-list-container" class="space-y-4">
-                <p id="loading-permissions" class="text-center text-gray-500 italic">Loading permissions...</p>
-            </div>
-            <div id="permissions-pagination-controls" class="flex justify-center mt-4 space-x-2"></div>
+  <div class="min-h-full bg-gray-100 px-6 py-4">
+    <div class="max-w-7xl mx-auto">
+      <!-- breadcrumb is already inserted by setBreadcrumb -->
+      <div class="bg-white rounded-xl shadow-lg p-8 mt-6">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Permission Requests</h1>
+        <div id="permissions-list-container" class="space-y-4">
+          <p id="loading-permissions" class="text-center text-gray-500 italic">
+            Loading permissions...
+          </p>
         </div>
-            `;
+        <div id="permissions-pagination-controls"
+             class="flex justify-center mt-4 space-x-2"></div>
+      </div>
+    </div>
+  </div>
+`;
+
 
             const permissionsListContainer = document.getElementById('permissions-list-container');
             const loadingPermissions = document.getElementById('loading-permissions');
@@ -982,15 +995,15 @@ function setBreadcrumb(section, subSection = null) {
 
              try {
         // Fetch paginated data from the updated backend route
-        const res = await authenticatedFetch('/api/admin/leave-requests?page=${page}&limit=${limit}', {
+        const res = await authenticatedFetch(`/api/admin/leave-requests?page=${page}&limit=${limit}`, {
            method: 'GET',
+           credentials: 'include',
         });
-            
-          
-         if (!response) return; // Already redirected due to auth failure
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+
+        if (!res) return; // Already redirected due to auth failure
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.message || `HTTP error! status: ${res.status}`);
         }
 
         const data = await res.json();
@@ -1269,8 +1282,6 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
             const mainContentArea = document.getElementById('main-content-area');
              // Hide breadcrumb on Dashboard
    setBreadcrumb('Dashboard');
-
-
             const dashboardHtml = `
                 <div class="space-y-8">
                     <!-- Header Section -->
@@ -1365,27 +1376,31 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
 
 
 
-                    <!-- Recent Activity Section -->
-                    <div class="bg-white p-6 rounded-xl shadow-lg">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Intern Activity</h2>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recent-activity-list" class="bg-white divide-y divide-gray-200">
-                                    <!-- Dynamic rows will be inserted here -->
-                                </tbody>
-                            </table>
+                    <div id="recent-activities-container">
+                    <!-- Loading state -->
+                    <div id="activities-loading" class="flex items-center justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
+                        <span class="ml-3 text-gray-500">Loading recent activities...</span>
+                    </div>
+                    
+                    <!-- Activities list -->
+                    <div id="recent-activities-list" class="space-y-3 hidden"></div>
+                    
+                    <!-- Empty state -->
+                    <div id="no-activities" class="text-center py-8 hidden">
+                        <div class="w-12 h-12 mx-auto mb-3 text-gray-400">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+                                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
                         </div>
+                        <p class="text-gray-500 text-sm">No recent activities to display</p>
                     </div>
                 </div>
-            `;
+            </div>
+        </div>
+    `;
+    
             mainContentArea.innerHTML = dashboardHtml;
             
             // Set the current date
@@ -1396,60 +1411,173 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
                 day: 'numeric'
             });
 
-            try {
+             // Load dashboard data
+    await loadDashboardData();
+    
+    // Set up refresh button
+    document.getElementById('refresh-activities').addEventListener('click', loadRecentActivities);
+}
+
+          
+async function loadDashboardData() {
+    try {
+        // Load stats
         const res = await authenticatedFetch('/api/admin/dashboard/summary');
-        if (!res) return; // Already redirected due to auth failure
+        if (!res) return;
         if (!res.ok) {
             throw new Error("Failed to fetch dashboard data");
         }
         const data = await res.json();
 
+        // Update KPI cards
+        document.getElementById('total-interns-count').textContent = data.stats.total_interns ?? "0";
+        document.getElementById('total-projects-count').textContent = data.stats.total_projects ?? "0";
+        document.getElementById('pending-reports-count').textContent = data.stats.pending_reports ?? "0";
+        document.getElementById('pending-permissions-count').textContent = data.stats.pending_permissions ?? "0";
+        document.getElementById('total-complaints-count').textContent = data.stats.total_complaints ?? "0";
 
-                // Update the dashboard with fetched data
-                document.getElementById('total-interns-count').textContent = data.stats.total_interns ?? "0";
-                document.getElementById('total-projects-count').textContent = data.stats.total_projects ?? "0";
-                document.getElementById('pending-reports-count').textContent = data.stats.pending_reports ?? "0";
-                document.getElementById('pending-permissions-count').textContent = data.stats.pending_permissions ?? "0";
-                document.getElementById('total-complaints-count').textContent = data.stats.total_complaints ?? "0";
-                
+        // Load recent activities
+        await loadRecentActivities();
 
-                // Populate the recent activity table
-                const activityListBody = document.getElementById("recent-activity-list");
-                activityListBody.innerHTML = ""; // Clear existing rows
+    } catch (error) {
+        console.error("Error loading dashboard:", error);
+        showModal("Error", "Failed to load dashboard data. Please try again later.");
+    }
+}
 
-                if (data.activities && data.activities.length > 0) {
-                    data.activities.forEach((activity) => {
-                        const newRow = document.createElement("tr");
-                        newRow.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${activity.name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${activity.email}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${activity.project}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${activity.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                                    ${activity.status}
-                                </span>
-                            </td>
-                        `;
-                        activityListBody.appendChild(newRow);
-                    });
-                } else {
-                    activityListBody.innerHTML = `
-                        <tr>
-                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">No recent activities.</td>
-                        </tr>
-                    `;
-                }
+async function loadRecentActivities() {
+    const activitiesLoading = document.getElementById('activities-loading');
+    const activitiesList = document.getElementById('recent-activities-list');
+    const noActivities = document.getElementById('no-activities');
+    
+    // Show loading state
+    activitiesLoading.classList.remove('hidden');
+    activitiesList.classList.add('hidden');
+    noActivities.classList.add('hidden');
 
-            } catch (error) {
-                console.error("Error loading dashboard:", error);
-                showMessage("Failed to load dashboard data. Please try again later.");
-            } finally {
-                hideSpinner();
-            }
+    try {
+        const res = await authenticatedFetch('/api/admin/dashboard/recent-activities?limit=5');
+        if (!res) return;
+        if (!res.ok) {
+            throw new Error("Failed to fetch recent activities");
         }
+        const data = await res.json();
+
+        // Hide loading state
+        activitiesLoading.classList.add('hidden');
+
+        if (!data.activities || data.activities.length === 0) {
+            noActivities.classList.remove('hidden');
+            return;
+        }
+
+        // Show and populate activities
+        activitiesList.classList.remove('hidden');
+        renderRecentActivities(data.activities);
+
+    } catch (error) {
+        console.error("Error loading recent activities:", error);
+        activitiesLoading.classList.add('hidden');
+        noActivities.classList.remove('hidden');
+    }
+}
+
+function renderRecentActivities(activities) {
+    const activitiesList = document.getElementById('recent-activities-list');
+    activitiesList.innerHTML = '';
+
+    activities.forEach(activity => {
+        const activityElement = document.createElement('div');
+        activityElement.className = 'flex items-start space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 border border-gray-100';
+
+        const iconHtml = getActivityIcon(activity.type);
+        const statusBadge = getStatusBadge(activity.type, activity.metadata.status);
+
+        activityElement.innerHTML = `
+            <div class="flex-shrink-0 mt-1">
+                ${iconHtml}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                        ${activity.name}
+                    </p>
+                    <div class="flex items-center space-x-2">
+                        ${statusBadge}
+                        <span class="text-xs text-gray-500 font-medium">${activity.timeAgo}</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">${activity.description}</p>
+                <p class="text-xs text-gray-400 mt-1">${activity.email}</p>
+            </div>
+        `;
+
+        activitiesList.appendChild(activityElement);
+    });
+}
+
+function getActivityIcon(type) {
+    const iconClasses = "w-8 h-8 p-1.5 rounded-full";
+    
+    switch (type) {
+        case 'report':
+            return `<div class="${iconClasses} bg-green-100">
+                        <svg class="w-full h-full text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>`;
+        case 'project':
+            return `<div class="${iconClasses} bg-purple-100">
+                        <svg class="w-full h-full text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                    </div>`;
+        case 'leave':
+            return `<div class="${iconClasses} bg-yellow-100">
+                        <svg class="w-full h-full text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>`;
+        case 'complaint':
+            return `<div class="${iconClasses} bg-red-100">
+                        <svg class="w-full h-full text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                        </svg>
+                    </div>`;
+        default:
+            return `<div class="${iconClasses} bg-blue-100">
+                        <svg class="w-full h-full text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>`;
+    }
+}
+
+function getStatusBadge(type, status) {
+    if (!status) return '';
+
+    let badgeClass = 'px-2 py-1 text-xs font-medium rounded-full';
+    let badgeText = status;
+
+    if (status === 'pending') {
+        badgeClass += ' bg-yellow-100 text-yellow-800';
+    } else if (status === 'approved' || status === 'resolved' || status === 'completed') {
+        badgeClass += ' bg-green-100 text-green-800';
+    } else if (status === 'rejected' || status === 'dismissed') {
+        badgeClass += ' bg-red-100 text-red-800';
+    } else {
+        badgeClass += ' bg-gray-100 text-gray-800';
+    }
+
+    return `<span class="${badgeClass}">${badgeText}</span>`;
+}
+
+
+
 
 
         // Function to render the Complaints & Suggestions view with the modal included.
+// Fixed Function to render the Complaints & Suggestions view with working pagination
 async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
     setBreadcrumb('Complaints & Suggestions');
 
@@ -1511,17 +1639,20 @@ async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
         if (event.target === detailsModal) detailsModal.classList.remove('active');
     });
 
-    // Fetch complaints
+    // FIXED: Fetch complaints with proper credentials and template literals
     async function fetchComplaints(page, limit) {
         loadingText.classList.remove('hidden');
         emptyState.classList.add('hidden');
         complaintsTable.classList.add('hidden');
 
         try {
-            const response = await fetch('/api/admin/complaints?page=${page}&limit=${limit}', {
+            // FIXED: Use proper template literal syntax and add credentials
+            const response = await fetch(`/api/admin/complaints?page=${page}&limit=${limit}`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include' // CRITICAL: Add credentials for authentication
             });
+            
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
 
@@ -1535,7 +1666,8 @@ async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
             } else {
                 complaintsTable.classList.remove('hidden');
                 renderComplaints(allComplaints);
-                renderPagination(paginationControls, data.current_page, data.total_pages, limit);
+                // FIXED: Pass the render function properly
+                renderComplaintsPagination(paginationControls, data.current_page, data.total_pages, limit);
             }
         } catch (error) {
             console.error('Could not fetch complaints:', error);
@@ -1543,7 +1675,7 @@ async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
         }
     }
 
-    // Render complaints table
+    // Render complaints table (unchanged)
     function renderComplaints(complaints) {
         complaintsTableBody.innerHTML = '';
         complaints.forEach(complaint => {
@@ -1568,121 +1700,117 @@ async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
         });
     }
 
-    // Pagination
-    function renderPagination(container, currentPage, totalPages, limit) {
+    // FIXED: Separate pagination function for complaints to avoid conflicts
+    function renderComplaintsPagination(container, currentPage, totalPages, limit) {
         container.innerHTML = '';
+        
         if (currentPage > 1) {
             const prev = document.createElement('button');
             prev.textContent = 'Previous';
             prev.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+            // FIXED: Use arrow function to preserve scope and call the correct function
             prev.addEventListener('click', () => renderComplaintsAndSuggestionsView(currentPage - 1, limit));
             container.appendChild(prev);
         }
+        
         for (let i = 1; i <= totalPages; i++) {
             const btn = document.createElement('button');
             btn.textContent = i;
             btn.className = `px-4 py-2 border rounded-md ${i === currentPage ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`;
+            // FIXED: Use arrow function to preserve scope
             btn.addEventListener('click', () => renderComplaintsAndSuggestionsView(i, limit));
             container.appendChild(btn);
         }
+        
         if (currentPage < totalPages) {
             const next = document.createElement('button');
             next.textContent = 'Next';
             next.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+            // FIXED: Use arrow function to preserve scope
             next.addEventListener('click', () => renderComplaintsAndSuggestionsView(currentPage + 1, limit));
             container.appendChild(next);
         }
     }
 
-   
-function escapeHtml(value) {
-  if (value === null || value === undefined) return '';
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-    .replace(/`/g, '&#96;');
-}
-// ----------------------------------------------------
-
-
-// ---------- Replace or update your showComplaintDetailsModal() with this ----------
-function showComplaintDetailsModal(complaint) {
-    const submittedAt = complaint.submitted_at ? new Date(complaint.submitted_at).toLocaleString() : 'N/A';
-    const incidentDateTime = complaint.incident_date_time ? new Date(complaint.incident_date_time).toLocaleString() : 'N/A';
-    const incidentLocation = complaint.incident_location || 'N/A';
-    const participants = Array.isArray(complaint.participants) ? complaint.participants : [];
-
-    // Build a tidy definition-list grid for alignment
-    modalBody.innerHTML = `
-        <dl class="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
-            <dt class="font-semibold text-gray-700">Submitted by:</dt>
-            <dd class="col-span-2">${escapeHtml(complaint.first_name || '')} ${escapeHtml(complaint.last_name || '')} (${escapeHtml(complaint.email || '')})</dd>
-
-            <dt class="font-semibold text-gray-700">Subject:</dt>
-            <dd class="col-span-2">${escapeHtml(complaint.subject || 'No subject')}</dd>
-
-            <dt class="font-semibold text-gray-700">Message:</dt>
-            <dd class="col-span-2">${escapeHtml(complaint.message || '—')}</dd>
-
-            <dt class="font-semibold text-gray-700">Submitted On:</dt>
-            <dd class="col-span-2">${escapeHtml(submittedAt)}</dd>
-
-            <dt class="font-semibold text-gray-700">Incident Date/Time:</dt>
-            <dd class="col-span-2">${escapeHtml(incidentDateTime)}</dd>
-
-            <dt class="font-semibold text-gray-700">Incident Location:</dt>
-            <dd class="col-span-2">${escapeHtml(incidentLocation)}</dd>
-
-            <dt class="font-semibold text-gray-700">Details:</dt>
-            <dd class="col-span-2">${escapeHtml(complaint.complaint_details || '—')}</dd>
-
-            <dt class="font-semibold text-gray-700">Participants:</dt>
-            <dd class="col-span-2">
-                <ul class="list-disc list-inside ml-4">
-                    ${participants.length > 0 
-                        ? participants.map(p => `<li>${escapeHtml(p.name || '')} - ${escapeHtml(p.involvement || '')} (${escapeHtml(p.mobile || '')})</li>`).join('')
-                        : '<li>No participants</li>'}
-                </ul>
-            </dd>
-        </dl>
-
-        <hr class="my-3" />
-        <div id="modal-response-block" class="text-sm">
-            <p class="font-semibold mb-1">Admin Response</p>
-            <div id="modal-full-response" class="whitespace-pre-wrap text-gray-800">${escapeHtml(complaint.response || 'No response yet')}</div>
-            <p class="text-xs text-gray-500 mt-2"><strong>Reviewed at:</strong> ${complaint.reviewed_at ? escapeHtml(new Date(complaint.reviewed_at).toLocaleString()) : 'N/A'}</p>
-        </div>
-    `;
-
-    // Review section (textarea + buttons) - only show when status indicates pending
-    reviewSection.innerHTML = '';
-    const statusLower = String(complaint.status || '').toLowerCase();
-    const isPending = (statusLower === 'pending' || statusLower === '');
-
-    if (isPending) {
-        // show a visible textarea (rows=4) and buttons
-        reviewSection.innerHTML = `
-            <label for="complaintResponse" class="block font-medium mb-2">Response</label>
-            <textarea id="complaintResponse" rows="4" placeholder="Write your response..." class="w-full border rounded-md p-2 mb-3"></textarea>
-            <div class="flex space-x-2">
-                <button id="resolveBtn" class="approve-btn bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700" data-id="${escapeHtml(complaint.complaints_id)}">Resolve</button>
-                <button id="dismissBtn" class="dismiss-btn bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700" data-id="${escapeHtml(complaint.complaints_id)}">Dismiss</button>
-            </div>
-        `;
-    } else {
-        // Already handled - show the status/response (we already show response block above, so this can be brief)
-        reviewSection.innerHTML = `
-            <p class="mt-2"><strong>Status:</strong> ${escapeHtml(complaint.status || 'N/A')}</p>
-        `;
+    function escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;')
+            .replace(/`/g, '&#96;');
     }
 
-    // show modal
-    detailsModal.classList.add('active');
-}
+    function showComplaintDetailsModal(complaint) {
+        const submittedAt = complaint.submitted_at ? new Date(complaint.submitted_at).toLocaleString() : 'N/A';
+        const incidentDateTime = complaint.incident_date_time ? new Date(complaint.incident_date_time).toLocaleString() : 'N/A';
+        const incidentLocation = complaint.incident_location || 'N/A';
+        const participants = Array.isArray(complaint.participants) ? complaint.participants : [];
 
+        modalBody.innerHTML = `
+            <dl class="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                <dt class="font-semibold text-gray-700">Submitted by:</dt>
+                <dd class="col-span-2">${escapeHtml(complaint.first_name || '')} ${escapeHtml(complaint.last_name || '')} (${escapeHtml(complaint.email || '')})</dd>
+
+                <dt class="font-semibold text-gray-700">Subject:</dt>
+                <dd class="col-span-2">${escapeHtml(complaint.subject || 'No subject')}</dd>
+
+                <dt class="font-semibold text-gray-700">Message:</dt>
+                <dd class="col-span-2">${escapeHtml(complaint.message || '—')}</dd>
+
+                <dt class="font-semibold text-gray-700">Submitted On:</dt>
+                <dd class="col-span-2">${escapeHtml(submittedAt)}</dd>
+
+                <dt class="font-semibold text-gray-700">Incident Date/Time:</dt>
+                <dd class="col-span-2">${escapeHtml(incidentDateTime)}</dd>
+
+                <dt class="font-semibold text-gray-700">Incident Location:</dt>
+                <dd class="col-span-2">${escapeHtml(incidentLocation)}</dd>
+
+                <dt class="font-semibold text-gray-700">Details:</dt>
+                <dd class="col-span-2">${escapeHtml(complaint.complaint_details || '—')}</dd>
+
+                <dt class="font-semibold text-gray-700">Participants:</dt>
+                <dd class="col-span-2">
+                    <ul class="list-disc list-inside ml-4">
+                        ${participants.length > 0 
+                            ? participants.map(p => `<li>${escapeHtml(p.name || '')} - ${escapeHtml(p.involvement || '')} (${escapeHtml(p.mobile || '')})</li>`).join('')
+                            : '<li>No participants</li>'}
+                    </ul>
+                </dd>
+            </dl>
+
+            <hr class="my-3" />
+            <div id="modal-response-block" class="text-sm">
+                <p class="font-semibold mb-1">Admin Response</p>
+                <div id="modal-full-response" class="whitespace-pre-wrap text-gray-800">${escapeHtml(complaint.response || 'No response yet')}</div>
+                <p class="text-xs text-gray-500 mt-2"><strong>Reviewed at:</strong> ${complaint.reviewed_at ? escapeHtml(new Date(complaint.reviewed_at).toLocaleString()) : 'N/A'}</p>
+            </div>
+        `;
+
+        reviewSection.innerHTML = '';
+        const statusLower = String(complaint.status || '').toLowerCase();
+        const isPending = (statusLower === 'pending' || statusLower === '');
+
+        if (isPending) {
+            reviewSection.innerHTML = `
+                <label for="complaintResponse" class="block font-medium mb-2">Response</label>
+                <textarea id="complaintResponse" rows="4" placeholder="Write your response..." class="w-full border rounded-md p-2 mb-3"></textarea>
+                <div class="flex space-x-2">
+                    <button id="resolveBtn" class="approve-btn bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700" data-id="${escapeHtml(complaint.complaints_id)}">Resolve</button>
+                    <button id="dismissBtn" class="dismiss-btn bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700" data-id="${escapeHtml(complaint.complaints_id)}">Dismiss</button>
+                </div>
+            `;
+        } else {
+            reviewSection.innerHTML = `
+                <p class="mt-2"><strong>Status:</strong> ${escapeHtml(complaint.status || 'N/A')}</p>
+            `;
+        }
+
+        detailsModal.classList.add('active');
+    }
 
     // Open modal
     complaintsTableBody.addEventListener('click', (e) => {
@@ -1693,7 +1821,7 @@ function showComplaintDetailsModal(complaint) {
         }
     });
 
-    // Handle approve/dismiss actions
+    // FIXED: Handle approve/dismiss actions with proper credentials
     reviewSection.addEventListener('click', async (e) => {
         if (e.target.classList.contains('approve-btn') || e.target.classList.contains('dismiss-btn')) {
             const id = e.target.dataset.id;
@@ -1701,9 +1829,11 @@ function showComplaintDetailsModal(complaint) {
             const responseText = document.getElementById('complaintResponse')?.value || '';
 
             try {
-                const res = await fetch('/api/admin/complaints/${id}/review', {
+                // FIXED: Add credentials and use proper template literal
+                const res = await fetch(`/api/admin/complaints/${id}/review`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // CRITICAL: Add credentials
                     body: JSON.stringify({
                         status: action,
                         response: responseText
@@ -1715,6 +1845,7 @@ function showComplaintDetailsModal(complaint) {
 
                 alert(`Complaint ${action} successfully.`);
                 detailsModal.classList.remove('active');
+                // FIXED: Maintain current page when refreshing
                 renderComplaintsAndSuggestionsView(page, limit);
             } catch (err) {
                 console.error('Error reviewing complaint:', err);
@@ -1723,10 +1854,14 @@ function showComplaintDetailsModal(complaint) {
         }
     });
 
-    await fetchComplaints(page, limit);
+    // FIXED: Initial fetch with error handling
+    try {
+        await fetchComplaints(page, limit);
+    } catch (error) {
+        console.error('Error initializing complaints view:', error);
+        loadingText.textContent = `Failed to initialize: ${error.message}`;
+    }
 }
-
-        
     
         
 // --- Professional Notification System ---
@@ -2443,9 +2578,11 @@ function renderLogbookViewSection() {
 
     
     mainContentArea.innerHTML = `
-    <div class="min-h-full flex flex-col items-center p-6 bg-gray-100">
-     
-        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 w-full">
+       <div class="min-h-full bg-gray-100 px-6 py-4">
+    <div class="max-w-7xl mx-auto">
+        <!-- breadcrumb is already inserted by setBreadcrumb -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mt-6">
+
 
             <!-- Intern Selection -->
             <div class="mb-6">

@@ -155,10 +155,10 @@ const allowedOrigins = [
     'http://localhost:4000',
     'https://lisms.vercel.app',
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-    // Since we're deploying everything to one domain, we might not need FRONTEND_URL
-    // But keep it for flexibility
     process.env.FRONTEND_URL
-].filter(Boolean);
+].filter((origin, index, array) => 
+    origin && array.indexOf(origin) === index // Remove duplicates and nulls
+);
 
 app.use(cors({
     origin: function (origin, callback) {
@@ -186,74 +186,75 @@ app.use(cors({
     exposedHeaders: ['Set-Cookie']
 }));
 
-
-// 2. Enhanced CORS headers middleware (place BEFORE session middleware)
+/*
+// Debug session store operations
 app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
+    if (req.session) {
+        const originalSave = req.session.save;
+        req.session.save = function(callback) {
+            console.log('[SESSION SAVE] Attempting to save session:', this);
+            return originalSave.call(this, (err) => {
+                if (err) {
+                    console.error('[SESSION SAVE ERROR]', err);
+                } else {
+                    console.log('[SESSION SAVE SUCCESS] Session saved to database');
+                }
+                if (callback) callback(err);
+            });
+        };
     }
-    
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
-    res.header('Access-Control-Expose-Headers', 'Set-Cookie');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    console.log(`${req.method} ${req.path} - Origin: ${origin} - Session: ${req.session?.user?.email || 'none'}`);
     next();
 });
+**/
 
 // 3. Body parser middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // 4. Static files
-app.use(express.static(path.join(__dirname, 'public')));
+
 
 // 5. Enhanced session configuration for Vercel
 const PgSession = pgSession(session);
+
+app.set('trust proxy', 1);
 
 app.use(session({
     store: new PgSession({
         pool: pool,
         tableName: 'session',
-        // Add these options for better reliability
         errorLog: console.error,
-        ttl: 24 * 60 * 60 // 24 hours in seconds
+        ttl: 24 * 60 * 60
     }),
     secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
-    name: 'sessionId', // Custom session name
+    name: 'sessionId',
     cookie: {
         maxAge: 1000 * 60 * 60 * 24, // 24 hours
-        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        sameSite:  'lax' // CRITICAL FOR VERCEL
-        
+       // sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // CRITICAL CHANGE
+       sameSite: 'lax'
     }
 }));
 
-// 6. Session debugging middleware (remove in production)
 app.use((req, res, next) => {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== 'development') { // Fix the condition
         console.log('Session Debug:', {
             sessionID: req.sessionID,
-            session: req.session,
+            hasSession: !!req.session,
             cookies: req.headers.cookie,
-            user: req.session?.user?.email || 'none'
+            user: req.session?.user?.email || 'none',
+            userRole: req.session?.user?.role || 'none',
+            sessionKeys: req.session ? Object.keys(req.session) : []
         });
     }
     next();
 });
-
 // ===== AUTHENTICATION MIDDLEWARE =====
+
+
 
 // Enhanced authentication middleware
 function isAuthenticated(req, res, next) {
@@ -264,7 +265,7 @@ function isAuthenticated(req, res, next) {
         return res.status(401).json({ 
             success: false, 
             message: 'Not authenticated.',
-            debug: process.env.NODE_ENV !== 'production' ? {
+            debug: process.env.NODE_ENV !== 'development' ? {
                 sessionID: req.sessionID,
                 hasSession: !!req.session,
                 sessionKeys: req.session ? Object.keys(req.session) : []
@@ -286,7 +287,7 @@ function isAdminOrSuperadmin(req, res, next) {
         res.status(403).json({ 
             success: false, 
             message: 'Access denied: Admin privileges required.',
-            debug: process.env.NODE_ENV !== 'production' ? {
+            debug: process.env.NODE_ENV !== 'development' ? {
                 currentRole: userRole,
                 requiredRoles: ['admin', 'superadmin']
             } : undefined
@@ -310,6 +311,7 @@ app.use('/pending_approval', PendingApprovalRoute);
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
+
 
 // User dashboard route with enhanced authentication
 app.get('/User_dashboard.html', isAuthenticated, (req, res) => {
@@ -337,6 +339,8 @@ app.get('/Admin_dashboard.html', isAuthenticated, isAdminOrSuperadmin, (req, res
     
     res.sendFile(path.join(process.cwd(), 'public', 'Admin_dashboard.html'));
 });
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== HEALTH CHECK ROUTE =====
 app.get('/health', (req, res) => {

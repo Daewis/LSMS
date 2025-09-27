@@ -276,27 +276,40 @@ router.post('/login', async (req, res) => {
         }
 
         // Store session on the server-side
-        req.session.user = {
-            user_id: userId, // This will be admin_id for admins, user_id for interns
-            email: authenticatedUser.email,
-            role: userRole,
-            first_name: authenticatedUser.first_name,
-            last_name: authenticatedUser.last_name,
-            middle_name: authenticatedUser.middle_name,
-        };
+      // Store session on the server-side
+req.session.user = {
+    user_id: userId,
+    email: authenticatedUser.email,
+    role: userRole,
+    first_name: authenticatedUser.first_name,
+    last_name: authenticatedUser.last_name,
+    middle_name: authenticatedUser.middle_name,
+};
 
-        console.log(`[LOGIN] ${userRole.toUpperCase()} Email: ${email} UserID: ${userId} logged in.`);
-        res.status(200).json({
-            success: true,
-            message: 'Login successful!',
-            user_id: userId, // Include user_id in the response for frontend
-            email: authenticatedUser.email,
-            role: userRole,
-            first_name: authenticatedUser.first_name,
-            middle_name: authenticatedUser.middle_name,
-            last_name: authenticatedUser.last_name
+// CRITICAL: Explicitly save the session to database
+req.session.save((err) => {
+    if (err) {
+        console.error('[SESSION SAVE ERROR]', err);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Session save failed. Please try again.' 
         });
-
+    }
+    
+    console.log(`[LOGIN SUCCESS] ${userRole.toUpperCase()} Email: ${email} UserID: ${userId} - Session saved successfully`);
+    console.log('[SESSION DATA]', req.session.user);
+    
+    res.status(200).json({
+        success: true,
+        message: 'Login successful!',
+        user_id: userId,
+        email: authenticatedUser.email,
+        role: userRole,
+        first_name: authenticatedUser.first_name,
+        middle_name: authenticatedUser.middle_name,
+        last_name: authenticatedUser.last_name
+    });
+});
     } catch (err) {
         console.error('[LOGIN ERROR]', err);
         res.status(500).json({ success: false, message: 'Internal server error during login.' });
@@ -305,16 +318,22 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Validate session endpoint - Add this to your auth.js router
 router.get('/validate-session', (req, res) => {
+    console.log('[VALIDATE SESSION] Called - SessionID:', req.sessionID);
+    console.log('[VALIDATE SESSION] Session exists:', !!req.session);
+    console.log('[VALIDATE SESSION] User in session:', req.session?.user || 'none');
+    
     // Check if user session exists
     if (!req.session || !req.session.user) {
+        console.log('[VALIDATE SESSION] No valid session found');
         return res.status(401).json({ 
             success: false, 
             message: 'No active session found' 
         });
     }
 
+    console.log('[VALIDATE SESSION] Valid session found for user:', req.session.user.email);
+    
     // Session exists, return user data
     res.status(200).json({
         success: true,
@@ -334,7 +353,7 @@ router.post('/logout', (req, res) => {
             console.error('[LOGOUT ERROR]', err);
             return res.status(500).json({ success: false, message: 'Logout failed.' });
         }
-        res.clearCookie('connect.sid');
+        res.clearCookie('sessionId');
         res.json({ success: true, message: 'Logged out successfully.' });
     });
 });

@@ -377,7 +377,7 @@
         </header>
 
         <!-- Breadcrumb / Page Header -->
-<div id="pageHeader" class="hidden"></div>
+ <!-- <div id="pageHeader" class="hidden"></div>-->
 
        <!-- Main Content Panel -->
 <main id="main-content-panel" class="flex-1 p-6 overflow-y-auto">
@@ -1931,7 +1931,7 @@ function prefillPermissionForm(user) {
 dashboardLink.addEventListener('click', (e) => {
     e.preventDefault();
     showPanel('dashboardContent'); 
-     setUserBreadcrumb('Dashboard'); 
+     //setUserBreadcrumb('Dashboard'); 
     if (sessionUserData && sessionUserData.user_id) {
         loadDashboard(); // already uses sessionUserData
     } else {
@@ -1943,7 +1943,7 @@ dashboardLink.addEventListener('click', (e) => {
 logbookReportLink.addEventListener('click', (e) => {
     e.preventDefault();
     showPanel('logbookReportContainer');
-    setUserBreadcrumb('Logbook Report');
+   // setUserBreadcrumb('Logbook Report');
     if (sessionUserData && sessionUserData.user_id) {
         prefillLogbookForm(sessionUserData);
     } else {
@@ -1957,7 +1957,7 @@ logbookReportLink.addEventListener('click', (e) => {
 complaintSuggestionLink.addEventListener('click', (e) => {
     e.preventDefault();
     showPanel('complaintSuggestionContainer');
-     setUserBreadcrumb('Complaint & Suggestion');
+    // setUserBreadcrumb('Complaint & Suggestion');
     if (sessionUserData && sessionUserData.user_id) {
         prefillComplaintForm(sessionUserData);
     } else {
@@ -1970,14 +1970,14 @@ complaintSuggestionLink.addEventListener('click', (e) => {
 uploadProjectLink.addEventListener('click', (e) => {
     e.preventDefault();
     showPanel('uploadProjectContainer');
-    setUserBreadcrumb('Upload Project');
+   // setUserBreadcrumb('Upload Project');
     fetchUploadedProjects();
 });
 
 editDetailsLink.addEventListener('click', (e) => {
     e.preventDefault();
     showPanel('editDetailsContainer');
-    setUserBreadcrumb('Edit Details');
+   // setUserBreadcrumb('Edit Details');
     if (sessionUserData && sessionUserData.user_id) {
         prefillEditDetails(sessionUserData);
     } else {
@@ -1990,7 +1990,7 @@ editDetailsLink.addEventListener('click', (e) => {
 requestPermissionLink.addEventListener('click', (e) => {
     e.preventDefault();
     showPanel('requestPermissionContainer');
-    setUserBreadcrumb('Request Permission');
+    // setUserBreadcrumb('Request Permission');
     if (sessionUserData && sessionUserData.user_id) {
         prefillPermissionForm(sessionUserData);
     } else {
@@ -2003,7 +2003,7 @@ requestPermissionLink.addEventListener('click', (e) => {
 messagesLink.addEventListener('click', (e) => {
     e.preventDefault();
     showPanel('messagesContainer');
-    setUserBreadcrumb('Messages');
+    // setUserBreadcrumb('Messages');
 });
 
 
@@ -2186,7 +2186,7 @@ function updateFormForSubmissionDeadline() {
 // Call the function on page load
 updateFormForSubmissionDeadline();
 
-
+/*
 function renderUserPageHeader(crumbs = []) {
     const pageHeader = document.getElementById('pageHeader');
 
@@ -2196,30 +2196,7 @@ function renderUserPageHeader(crumbs = []) {
         return;
     }
 
-   /* 
-   pageHeader.innerHTML = `
-    <div class="bg-white w-full px-6 py-4 rounded-lg shadow-md border border-gray-200">
-        <h2 class="text-xl font-semibold text-gray-800 mb-2">
-            ${crumbs[crumbs.length - 1]}
-        </h2>
-        <nav class="flex items-center text-sm text-gray-600 space-x-1">
-            ${crumbs.map((crumb, i) => {
-                if (i < crumbs.length - 1) {
-                    return `
-                        <a href="#" class="hover:text-blue-600 font-medium breadcrumb-link" data-crumb="${crumb}">
-                            ${crumb}
-                        </a>
-                        <span class="text-gray-400">›</span>
-                    `;
-                } else {
-                    return `<span class="text-gray-800 font-semibold">${crumb}</span>`;
-                }
-            }).join('')}
-        </nav>
-    </div>
-`;
-**/
-
+   
 pageHeader.innerHTML = `
   <div class="max-w-6xl mx-auto px-6 py-4">
       <div class="bg-white rounded-lg shadow-md border border-gray-200 p-6">
@@ -2309,7 +2286,7 @@ function setUserBreadcrumb(section) {
             break;
     }
 }
-
+**/
 
 //Function to Fetch & Render Messages
 async function renderUserMessage(messageId) {

@@ -101,7 +101,9 @@ if (signInForm) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                 credentials: 'include',
                 body: JSON.stringify({ email, passwords }),
+
             });
 
             const result = await response.json();
@@ -154,6 +156,7 @@ if (signInToggleBtn && signInPasswordInput) {
         });
     }
 }
+
 
 
 // --- Logic for Sign_up.html form ---

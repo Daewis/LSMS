@@ -4,12 +4,9 @@
 import express from 'express';
 import pool from '../db.js';
 import multer from 'multer';
-//import fs from 'fs';
-//import path from 'path';
+import bcrypt from 'bcrypt';           
 import { getWeekNumber } from '../dateUtils.js'; // Assuming this utility is available
 import { createNotification } from '../utils/notifications.js';
-
-
 
 
 const router = express.Router();
@@ -32,70 +29,6 @@ const isAuthenticated = (req, res, next) => {
     }
 };
 
-
-
-
-/*
-// In Users.js (backend)
-async function sendNotificationToAdmin(action, userId, data) {
-    try {
-        const adminResult = await pool.query(
-            `SELECT admin_id FROM admins WHERE role IN ('admin', 'superadmin')`
-        );
-
-        if (adminResult.rows.length === 0) {
-            console.warn('No admin users found to notify');
-            return;
-        }
-
-        const userResult = await pool.query(
-            `SELECT first_name, last_name FROM users WHERE user_id = $1`,
-            [userId]
-        );
-        if (userResult.rows.length === 0) return;
-
-        const user = userResult.rows[0];
-        const userName = `${user.first_name} ${user.last_name}`;
-
-        let message = '';
-        let link = '';
-
-        switch (action) {
-            case 'complaint_submitted':
-                message = `${userName} submitted a new complaint: "${data.subject}"`;
-                link = '/admin_dashboard.html#complaints';
-                break;
-            case 'leave_request_submitted':
-                message = `${userName} submitted a leave request for ${data.leaveType}`;
-                link = '/admin_dashboard.html#leave-requests';
-                break;
-            case 'project_uploaded':
-                message = `${userName} uploaded a new project: "${data.projectName}"`;
-                link = '/admin_dashboard.html#projects';
-                break;
-            case 'logbook_submitted':
-                message = `${userName} submitted a logbook report (${data.weekRange})`;
-                link = '/admin_dashboard.html#logbook';
-                break;
-            default:
-                message = `${userName} performed an action requiring attention`;
-                link = '/admin_dashboard.html';
-        }
-
-        for (const admin of adminResult.rows) {
-            await pool.query(
-                `INSERT INTO notifications (user_id, admin_id, message, link, is_read, created_at)
-                 VALUES ($1, $2, $3, $4, false, NOW())`,
-                [userId, admin.admin_id, message, link]
-            );
-        }
-
-        console.log(`✅ Notification sent to ${adminResult.rows.length} admin(s)`);
-    } catch (error) {
-        console.error('Error sending notification to admin:', error);
-    }
-}
-    **/
 
 
 async function sendNotificationToAdmin(action, userId, data) {
@@ -411,6 +344,74 @@ router.get('/complaints', isAuthenticated, async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch your complaints.' });
   }
 });
+
+/**
+ * PUT /users/update-profile
+ * Body: { user_id, first_name, middle_name?, last_name }
+ */
+router.put('/update-profile', isAuthenticated, async (req, res) => {
+  const { user_id, first_name, middle_name, last_name } = req.body;
+
+  // 1. Verify session user matches the requested user_id
+  const sessionUserId = req.session.user?.user_id;
+  if (!sessionUserId || sessionUserId !== user_id) {
+    return res.status(401).json({ success: false, message: 'Unauthorized.' });
+  }
+
+  // 2. Validate input
+  if (!first_name || !last_name) {
+    return res.status(400).json({
+      success: false,
+      message: 'First name and last name are required.',
+    });
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
+
+    const updateQuery = `
+      UPDATE users
+      SET first_name = $1,
+          middle_name = $2,
+          last_name = $3
+      WHERE user_id = $4
+      RETURNING user_id, first_name, middle_name, last_name, email;
+    `;
+    const values = [first_name.trim(), middle_name?.trim() || null, last_name.trim(), user_id];
+
+    const result = await client.query(updateQuery, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found or no changes made.',
+      });
+    }
+
+    // Update the session so UI reflects changes immediately
+    req.session.user = {
+      ...req.session.user,
+      first_name: result.rows[0].first_name,
+      middle_name: result.rows[0].middle_name,
+      last_name: result.rows[0].last_name,
+    };
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully!',
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Database error updating profile:', error);
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to update profile due to a server error.' });
+  } finally {
+    if (client) client.release();
+  }
+});
+
 
 
 // --- API to update user email ---
@@ -768,54 +769,67 @@ router.post('/submit-leave-request', isAuthenticated, upload.single('attachment'
 });
 
 
-
-   router.get('/dashboard/summary', isAuthenticated, async (req, res) => {
+router.get('/dashboard/summary', isAuthenticated, async (req, res) => {
   const userId = req.query.userId;
   if (!userId) {
     return res.status(400).json({ success: false, message: 'User ID is required.' });
   }
 
   try {
-    const [reports, leaves, projects, activities] = await Promise.all([
-      pool.query('SELECT COUNT(*) AS total_reports FROM logbook_reports WHERE user_id = $1;', [userId]),
-      pool.query('SELECT COUNT(*) AS pending_leave FROM leave_requests WHERE user_id = $1 AND status = $2;', [userId, 'Pending']),
-      pool.query('SELECT COUNT(*) AS projects_uploaded FROM user_projects WHERE user_id = $1;', [userId]),
-      (async () => {
-        const allActs = [];
+    // Run counts in parallel
+    const [counts, activities] = await Promise.all([
 
-        const reportsResult = await pool.query(
-          `SELECT 'report' as type, submitted_at as timestamp, 'Submitted weekly report for ' || week_range as description
-           FROM logbook_reports WHERE user_id = $1 ORDER BY submitted_at DESC LIMIT 3;`,
-          [userId]
-        );
-        allActs.push(...reportsResult.rows);
+      // Combined counts query
+      pool.query(
+        `
+        SELECT 
+          (SELECT COUNT(*) FROM logbook_reports WHERE user_id = $1) AS total_reports,
+          (SELECT COUNT(*) FROM leave_requests WHERE user_id = $1 AND status = 'Pending') AS pending_leave,
+          (SELECT COUNT(*) FROM user_projects WHERE user_id = $1) AS projects_uploaded;
+        `,
+        [userId]
+      ),
 
-        const leaveResult = await pool.query(
-          `SELECT 'leave' as type, requested_at as timestamp, 'Your ' || leave_type || ' leave request for ' || start_date || ' - ' || end_date || ' is ' || status as description
-           FROM leave_requests WHERE user_id = $1 ORDER BY requested_at DESC LIMIT 3;`,
-          [userId]
-        );
-        allActs.push(...leaveResult.rows);
-
-        const projectsResult = await pool.query(
-          `SELECT 'project' as type, uploaded_at as timestamp, 'Uploaded "' || project_name || '".' as description
-           FROM user_projects WHERE user_id = $1 ORDER BY uploaded_at DESC LIMIT 3;`,
-          [userId]
-        );
-        allActs.push(...projectsResult.rows);
-
-        return allActs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
-      })()
+      // Combined activities query (latest 5 from all 3 tables)
+      pool.query(
+        `
+        SELECT 'report' AS type, submitted_at AS timestamp,
+               'Submitted weekly report for ' || week_range AS description
+        FROM logbook_reports
+        WHERE user_id = $1
+        
+        UNION ALL
+        
+        SELECT 'leave' AS type, requested_at AS timestamp,
+               'Your ' || leave_type || ' leave request for ' || start_date || ' - ' || end_date || ' is ' || status AS description
+        FROM leave_requests
+        WHERE user_id = $1
+        
+        UNION ALL
+        
+        SELECT 'project' AS type, uploaded_at AS timestamp,
+               'Uploaded "' || project_name || '"' AS description
+        FROM user_projects
+        WHERE user_id = $1
+        
+        ORDER BY timestamp DESC
+        LIMIT 5;
+        `,
+        [userId]
+      )
     ]);
+
+    // Extract counts
+    const stats = counts.rows[0];
 
     res.json({
       success: true,
       stats: {
-        total_reports: parseInt(reports.rows[0].total_reports),
-        pending_leave: parseInt(leaves.rows[0].pending_leave),
-        projects_uploaded: parseInt(projects.rows[0].projects_uploaded),
+        total_reports: parseInt(stats.total_reports, 10),
+        pending_leave: parseInt(stats.pending_leave, 10),
+        projects_uploaded: parseInt(stats.projects_uploaded, 10),
       },
-      activities
+      activities: activities.rows
     });
 
   } catch (error) {
@@ -823,6 +837,9 @@ router.post('/submit-leave-request', isAuthenticated, upload.single('attachment'
     res.status(500).json({ success: false, message: 'Failed to fetch dashboard summary.' });
   }
 });
+
+   
+
 
 /// Get profile picture
 router.get("/profile-picture/:id", async (req, res) => {

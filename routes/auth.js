@@ -7,11 +7,21 @@ import { sendNewRegistrationNotification } from './pending_approval.js';
 
 const router = express.Router();
 
-// --- Multer Configuration for File Uploads ---
-// Change storage to memoryStorage to get file buffer directly
-const upload = multer({ storage: multer.memoryStorage() });
+const storage = multer.memoryStorage();
 
-
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // max global 2MB (covers user image)
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'user_image' && file.size > 2 * 1024 * 1024) {
+      return cb(new Error('User image must not exceed 2MB'), false);
+    }
+    if (file.fieldname === 'acceptance_letter' && file.size > 1 * 1024 * 1024) {
+      return cb(new Error('Acceptance letter must not exceed 1MB'), false);
+    }
+    cb(null, true);
+  }
+});
 
 // Update the notifyAdminsOfNewRegistration function in your auth.js
 async function notifyAdminsOfNewRegistration(userData, client) {
@@ -79,10 +89,22 @@ await client.query("SELECT admin_id FROM admins WHERE role IN ('admin', 'superad
 // POST route for user registration with multiple file uploads.
 // `upload.fields` is used to handle multiple file fields from the form.
 // UPDATED: POST route for user registration with approval system
-router.post('/register', upload.fields([
-    { name: 'user_image', maxCount: 1 },
-    { name: 'acceptance_letter', maxCount: 1 }
-]), async (req, res) => {
+router.post(
+  "/register",
+  (req, res, next) => {
+    upload.fields([
+      { name: "user_image", maxCount: 1 },
+      { name: "acceptance_letter", maxCount: 1 }
+    ])(req, res, (err) => {
+      if (err) {
+        console.error("File upload error:", err.message);
+        return res
+          .status(400)
+          .json({ success: false, message: err.message });
+      }
+      next();
+    });
+  }, async (req, res) => {
     // Destructure all fields from the request body.
     const {
         first_name, middle_name, last_name, matric_number, institution,
@@ -127,7 +149,7 @@ router.post('/register', upload.fields([
         // Hash the password for security.
         const hashedPassword = await bcrypt.hash(password, 10);
         client = await pool.connect();
-        await client.query('BEGIN'); // Start a transaction for atomicity.
+        await client.query('BEGIN');
 
         // Check if a user with the same email or matric number already exists.
         const existingUser = await client.query(
@@ -136,7 +158,7 @@ router.post('/register', upload.fields([
         );
 
         if (existingUser.rows.length > 0) {
-            await client.query('ROLLBACK'); // Rollback the transaction if the user exists.
+            await client.query('ROLLBACK');
             return res.status(409).json({ success: false, message: 'Email or Matric Number already registered.' });
         }
 
@@ -182,7 +204,7 @@ router.post('/register', upload.fields([
             name: `${first_name} ${last_name}`
         }, client);
 
-        await client.query('COMMIT'); // Commit the transaction on success.
+        await client.query('COMMIT'); 
         console.log(`[REGISTRATION] New user registered successfully: ${email_address} (Pending Approval)`);
         
         // UPDATED: New success message indicating approval requirement
@@ -192,7 +214,7 @@ router.post('/register', upload.fields([
         });
 
     } catch (error) {
-        if (client) { await client.query('ROLLBACK'); } // Rollback on any error.
+        if (client) { await client.query('ROLLBACK'); }
         console.error('Registration error:', error);
         res.status(500).json({ success: false, message: 'Internal server error during registration.' });
     } finally {
@@ -216,7 +238,7 @@ router.post('/login', async (req, res) => {
         let userRole = null;
         let userId = null;
 
-        // Try to authenticate as Admin/SuperAdmin (Admins are always approved)
+        // 1. Try Admin/SuperAdmin login
         const adminQuery = await client.query(
             'SELECT admin_id, email, password, role, first_name, last_name FROM admins WHERE email = $1',
             [email]
@@ -227,21 +249,28 @@ router.post('/login', async (req, res) => {
             if (admin.password && admin.password.startsWith('$2b$')) {
                 const match = await bcrypt.compare(passwords, admin.password);
                 if (match) {
+                    // 🔹 Check if disabled
+                    if (admin.is_disabled) {
+                        return res.status(403).json({
+                            success: false,
+                            message: 'Account disabled. Contact superadmin.'
+                        });
+                    }
+
                     authenticatedUser = admin;
                     userRole = admin.role;
-                    userId = admin.admin_id; // Use admin_id directly
+                    userId = admin.admin_id;
                 }
             } else {
                 return res.status(403).json({ success: false, message: 'Admin password hash is invalid. Contact support.' });
             }
         }
 
-        // Try to authenticate as Intern if not found in Admins
+        // 2. Try Intern login if not authenticated as Admin
         if (!authenticatedUser) {
-            // UPDATED: Added approval status checks to the SELECT clause
             const internQuery = await client.query(
                 `SELECT user_id, matric_number, email, password, first_name, last_name, middle_name, 
-                        is_approved, approval_status 
+                        is_approved, approval_status, is_disabled
                  FROM users WHERE email = $1`,
                 [email]
             );
@@ -251,7 +280,7 @@ router.post('/login', async (req, res) => {
                 if (intern.password && intern.password.startsWith('$2b$')) {
                     const match = await bcrypt.compare(passwords, intern.password);
                     if (match) {
-                        // UPDATED: Check approval status before allowing login
+                        // 🔹 Approval check
                         if (!intern.is_approved || intern.approval_status !== 'approved') {
                             return res.status(403).json({ 
                                 success: false, 
@@ -259,11 +288,19 @@ router.post('/login', async (req, res) => {
                                 status: 'pending_approval'
                             });
                         }
-                        
-                        // User is approved, proceed with login
+
+                        // 🔹 Disabled check
+                        if (intern.is_disabled) {
+                            return res.status(403).json({
+                                success: false,
+                                message: 'Account disabled. Contact admin.'
+                            });
+                        }
+
+                        // Intern is good to go
                         authenticatedUser = intern;
                         userRole = 'intern';
-                        userId = intern.user_id; // Use user_id directly
+                        userId = intern.user_id;
                     }
                 } else {
                     return res.status(403).json({ success: false, message: 'Intern password hash is invalid. Contact support.' });
@@ -271,45 +308,45 @@ router.post('/login', async (req, res) => {
             }
         }
 
+        // 3. No match found
         if (!authenticatedUser) {
             return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
 
-        // Store session on the server-side
-      // Store session on the server-side
-req.session.user = {
-    user_id: userId,
-    email: authenticatedUser.email,
-    role: userRole,
-    first_name: authenticatedUser.first_name,
-    last_name: authenticatedUser.last_name,
-    middle_name: authenticatedUser.middle_name,
-};
+        // 4. Save session
+        req.session.user = {
+            user_id: userId,
+            email: authenticatedUser.email,
+            role: userRole,
+            first_name: authenticatedUser.first_name,
+            middle_name: authenticatedUser.middle_name,
+            last_name: authenticatedUser.last_name,
+        };
 
-// CRITICAL: Explicitly save the session to database
-req.session.save((err) => {
-    if (err) {
-        console.error('[SESSION SAVE ERROR]', err);
-        return res.status(500).json({ 
-            success: false, 
-            message: 'Session save failed. Please try again.' 
+        req.session.save((err) => {
+            if (err) {
+                console.error('[SESSION SAVE ERROR]', err);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Session save failed. Please try again.' 
+                });
+            }
+            
+            console.log(`[LOGIN SUCCESS] ${userRole.toUpperCase()} Email: ${email} UserID: ${userId} - Session saved successfully`);
+            console.log('[SESSION DATA]', req.session.user);
+            
+            res.status(200).json({
+                success: true,
+                message: 'Login successful!',
+                user_id: userId,
+                email: authenticatedUser.email,
+                role: userRole,
+                first_name: authenticatedUser.first_name,
+                middle_name: authenticatedUser.middle_name,
+                last_name: authenticatedUser.last_name
+            });
         });
-    }
-    
-    console.log(`[LOGIN SUCCESS] ${userRole.toUpperCase()} Email: ${email} UserID: ${userId} - Session saved successfully`);
-    console.log('[SESSION DATA]', req.session.user);
-    
-    res.status(200).json({
-        success: true,
-        message: 'Login successful!',
-        user_id: userId,
-        email: authenticatedUser.email,
-        role: userRole,
-        first_name: authenticatedUser.first_name,
-        middle_name: authenticatedUser.middle_name,
-        last_name: authenticatedUser.last_name
-    });
-});
+
     } catch (err) {
         console.error('[LOGIN ERROR]', err);
         res.status(500).json({ success: false, message: 'Internal server error during login.' });
@@ -317,6 +354,7 @@ req.session.save((err) => {
         if (client) client.release();
     }
 });
+
 
 router.get('/validate-session', (req, res) => {
     console.log('[VALIDATE SESSION] Called - SessionID:', req.sessionID);

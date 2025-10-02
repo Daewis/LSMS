@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/images/Lasued.png">
     <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -395,6 +396,11 @@
                 <i data-lucide="send-horizontal" class="w-5 h-5"></i>
                 <span>Message</span>    
             </a>
+            <!-- Accounts (superadmin only) -->
+            <a href="#" id="accountsManagementLink" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200 hidden">
+                <i data-lucide="shield-ban" class="w-5 h-5"></i>
+                <span>Accounts</span>
+            </a>
             <!-- Register Admin link -->
             <a href="#" id="registerAdminLink" class="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200 hidden">
                 <i data-lucide="user-plus" class="w-5 h-5"></i>
@@ -413,7 +419,22 @@
 
     <!-- Main content area -->
     <div class="flex-1 flex flex-col overflow-hidden">
-        <header class="flex items-center justify-between p-6 bg-white border-b border-gray-200 shadow-sm rounded-bl-lg">
+
+        <!-- Skeleton Loader for Header -->
+<header id="headerSkeleton" class="flex items-center justify-between p-6 bg-white border-b border-gray-200 shadow-sm rounded-bl-lg animate-pulse">
+  <div class="flex flex-col space-y-2">
+    <div class="h-5 w-40 bg-gray-300 rounded"></div> 
+    <div class="h-4 w-24 bg-gray-200 rounded"></div> 
+  </div>
+  <div class="flex items-center space-x-6">
+    <div class="h-10 w-10 bg-gray-300 rounded-full"></div>
+    <div class="h-10 w-10 bg-gray-300 rounded-full"></div>
+  </div>
+</header>
+
+
+
+        <header id="headerContent" class=" hidden flex items-center justify-between p-6 bg-white border-b border-gray-200 shadow-sm rounded-bl-lg">
             <h2 class="text-xl font-semibold text-gray-800">Welcome, <span id="loggedInUserName" class="text-blue-600">Guest</span></h2>
             <div class="flex items-center space-x-4">
                 <!-- Notification Bell and Dropdown for Admin -->
@@ -429,10 +450,11 @@
             <button id="mark-all-read" class="mark-all-read" style="display: none;">Mark all as read</button>
         </div>
         <div class="notification-list" id="notification-list">
-            <div class="notification-loading" id="notification-loading" style="display: none;">
-                <i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i>
-                <div class="text-sm">Loading notifications...</div>
-            </div>
+            <div class="notification-loading text-center py-4" id="notification-loading" style="display: none;">
+                <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2 text-gray-500"></i>
+                    <div class="text-sm text-gray-600">Loading notifications...</div>
+                </div>
+             <!-- No notifications -->
             <div class="no-notifications" id="no-notifications">
                 <div class="no-notifications-icon">
                     <i data-lucide="bell-off" class="w-full h-full text-gray-400"></i>
@@ -453,11 +475,43 @@
        <div class="w-full px-6 pt-6 hidden" id="pageHeader"></div>
 
         <main id="main-content-area" class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-            <!-- Content will be loaded here dynamically -->
-            <div class="border border-dashed border-gray-300 rounded-lg p-6 h-full flex items-center justify-center text-gray-400 text-xl">
-                Select an option from the sidebar.
-            </div>
-        </main>
+  <!-- Admin Dashboard Skeleton Loader -->
+  <div id="adminDashboardSkeleton" class="space-y-6 animate-pulse">
+      <!-- Header Skeleton -->
+      <div class="h-8 w-64 bg-gray-200 rounded"></div>
+      <div class="h-4 w-40 bg-gray-200 rounded"></div>
+
+      <!-- KPI Cards Skeleton -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-xl shadow border border-gray-200">
+              <div class="h-6 w-32 bg-gray-200 rounded"></div>
+              <div class="h-10 w-20 bg-gray-200 rounded mt-4"></div>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow border border-gray-200">
+              <div class="h-6 w-32 bg-gray-200 rounded"></div>
+              <div class="h-10 w-20 bg-gray-200 rounded mt-4"></div>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow border border-gray-200">
+              <div class="h-6 w-32 bg-gray-200 rounded"></div>
+              <div class="h-10 w-20 bg-gray-200 rounded mt-4"></div>
+          </div>
+      </div>
+
+      <!-- Recent Activities Skeleton -->
+      <div class="bg-white p-6 rounded-xl shadow border border-gray-200">
+          <div class="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+          <div class="space-y-3">
+              <div class="h-4 w-3/4 bg-gray-200 rounded"></div>
+              <div class="h-4 w-2/3 bg-gray-200 rounded"></div>
+              <div class="h-4 w-1/2 bg-gray-200 rounded"></div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Real Admin Dashboard (hidden at first) -->
+  <div id="adminDashboardContent" class="hidden"></div>
+</main>
+
     </div>
 
   
@@ -502,6 +556,23 @@
         </div>
     </div>
 
+    <!-- Confirm Modal -->
+<div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 transform transition-all scale-95">
+    <h2 id="confirmModalTitle" class="text-lg font-bold text-gray-800 mb-4">Confirm Action</h2>
+    <p id="confirmModalMessage" class="text-gray-600 mb-6">Are you sure?</p>
+    <div class="flex justify-end space-x-3">
+      <button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">
+        Cancel
+      </button>
+      <button id="confirmOkBtn" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition">
+        Yes, Continue
+      </button>
+    </div>
+  </div>
+</div>
+
+
     <!-- Make sure this container exists in admin_dashboard.html -->
 <div id="permissionsList" class="grid gap-6"></div>
 
@@ -519,6 +590,7 @@
         const editDetailsLink = document.getElementById('editDetailsLink');
         const viewLogbookLink = document.getElementById('viewLogbookLink');
         const viewComplaintsLink = document.getElementById('viewComplaintsLink');
+        const accountsManagementLink = document.getElementById('accountsManagementLink');
         const viewPermissionLink = document.getElementById('viewPermissionLink');
         const customModal = document.getElementById('customModal');
 
@@ -821,32 +893,7 @@ function renderPageHeader(crumbs = []) {
         return;
     }
 
-    /*
     pageHeader.innerHTML = `
-        <div class="bg-white w-full px-8 py-6 rounded-lg shadow-md border border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-800 mb-3">
-                ${crumbs[crumbs.length - 1]}
-            </h2>
-            <nav class="flex items-center text-lg text-gray-600 space-x-2">
-                ${crumbs.map((crumb, i) => {
-                    if (i < crumbs.length - 1) {
-                        return `
-                            <a href="#" class="hover:text-blue-600 font-medium breadcrumb-link" data-crumb="${crumb}">
-                                ${crumb}
-                            </a>
-                            <span class="text-gray-400">›</span>
-                        `;
-                    } else {
-                        return `<span class="text-gray-800 font-semibold">${crumb}</span>`;
-                    }
-                }).join('')}
-            </nav>
-        </div>
-    `;
-    pageHeader.classList.remove('hidden');
-**/
-
- pageHeader.innerHTML = `
     <div class="max-w-6xl mx-auto px-6 bg-white rounded-lg shadow-md border border-gray-200 py-4 mb-6">
       <h2 class="text-2xl font-bold text-gray-800 mb-3">${crumbs[crumbs.length - 1]}</h2>
       <nav class="flex items-center text-lg text-gray-600 space-x-2">
@@ -878,6 +925,7 @@ function renderPageHeader(crumbs = []) {
     'Projects': () => renderProjectsView(),
     'Messages': () => renderMessagesView(),
     'Logbook Reports': () => renderLogbookViewSection(),
+    'Accounts': () =>  accountsManagementLink(),
     'Register Admin': () => registerAdminLink(),
     'Settings': () => renderSettingsView()
 };
@@ -932,6 +980,10 @@ function setBreadcrumb(section, subSection = null) {
 
         case 'Messages':
             renderPageHeader(['Dashboard', 'Messages']);
+            break;
+
+        case 'Accounts':
+            renderPageHeader(['Dashboard', 'Accounts']);
             break;
 
         case 'Register Admin':
@@ -1046,7 +1098,7 @@ function setBreadcrumb(section, subSection = null) {
                     <p class="text-xs text-gray-500">Reason: ${permission.reason}</p>
                     <p class="text-xs text-gray-400">Request ID: ${permission.permission_id} | Status: ${permission.status}</p>
                     <p class="text-xs text-gray-400">Requested: ${new Date(permission.requested_at).toLocaleDateString()}</p>
-                    ${permission.reviewed_at ? `<p class="text-xs text-gray-400">Reviewed: ${new Date(permission.reviewed_at).toLocaleDateString()}</p>` : ''}
+                    ${permission.reviewed_at ? `<p class="text-xs text-gray-400">Reviewed: ${new Date().toLocaleDateString()}</p>` : ''}
                     ${permission.rejection_reason ? `<p class="text-xs text-red-500">Rejection Reason: ${permission.rejection_reason}</p>` : ''}
                     ${downloadButton}
                 </div>
@@ -1200,7 +1252,7 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
         // --- Update backend ---
         async function updatePermission(id, status, rejectionReason = null) {
             try {
-                const res = await fetch('/api/admin/update-leave-request-status', {
+                const res = await fetch(`/api/admin/update-leave-request-status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -1276,10 +1328,33 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
             lucide.createIcons();
         });
 
+        const headerSkeleton = document.getElementById("headerSkeleton");
+  const headerContent = document.getElementById("headerContent");
+
+  
+  setTimeout(() => {
+    headerSkeleton.classList.add("hidden");
+    headerContent.classList.remove("hidden");
+    headerContent.classList.add("opacity-0");
+
+    // Fade in effect
+    setTimeout(() => {
+      headerContent.classList.remove("opacity-0");
+      headerContent.classList.add("opacity-100", "transition-opacity", "duration-500");
+    }, 50);
+  }, 2500); 
+
 
           // --- Dashboard View Function ---
         async function renderDashboard() {
-            const mainContentArea = document.getElementById('main-content-area');
+        const mainContentArea = document.getElementById('main-content-area');
+        const skeleton = document.getElementById("adminDashboardSkeleton");
+        const dashboardContent = document.getElementById("adminDashboardContent");
+
+        skeleton.classList.remove("hidden");
+        dashboardContent.classList.add("hidden");
+
+
              // Hide breadcrumb on Dashboard
    setBreadcrumb('Dashboard');
             const dashboardHtml = `
@@ -1374,9 +1449,20 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
                         </div>
                     </div>
 
+                    <!-- Divider -->
+                    <hr class="my-8 border-t border-gray-300">
 
 
                     <div id="recent-activities-container">
+                        <!-- Header with Refresh -->
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Recent Activities</h3>
+                        <button id="refresh-activities" 
+                         class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                            Refresh
+                        </button>
+                    </div>
+
                     <!-- Loading state -->
                     <div id="activities-loading" class="flex items-center justify-center py-8">
                         <div class="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
@@ -1401,22 +1487,27 @@ function renderPagination(container, currentPage, totalPages, limit, onPageChang
         </div>
     `;
     
-            mainContentArea.innerHTML = dashboardHtml;
-            
-            // Set the current date
-            document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+            setTimeout(() => {
+        dashboardContent.innerHTML = dashboardHtml;
+        skeleton.classList.add("hidden");
+        dashboardContent.classList.remove("hidden");
 
-             // Load dashboard data
-    await loadDashboardData();
-    
-    // Set up refresh button
-    document.getElementById('refresh-activities').addEventListener('click', loadRecentActivities);
+        // Set current date AFTER rendering HTML
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Load dashboard data
+        loadDashboardData();
+
+        // Refresh button
+        document.getElementById('refresh-activities').addEventListener('click', loadRecentActivities);
+    }, 2500);
 }
+
 
           
 async function loadDashboardData() {
@@ -1614,7 +1705,7 @@ async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
 
         <!-- Complaint Details Modal -->
         <div id="complaintsDetailsModal" class="modal">
-            <div class="modal-content max-w-2xl w-full">
+            <div class="modal-content max-w-2xl w-full p-5">
                 <span id="closeComplaintsModalBtn" class="close-btn">&times;</span>
                 <h2 class="text-2xl font-semibold mb-4 text-gray-800">Complaint Details</h2>
                 <div id="complaintsModalBody" class="space-y-3 text-gray-600"></div>
@@ -1786,7 +1877,7 @@ async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
             <div id="modal-response-block" class="text-sm">
                 <p class="font-semibold mb-1">Admin Response</p>
                 <div id="modal-full-response" class="whitespace-pre-wrap text-gray-800">${escapeHtml(complaint.response || 'No response yet')}</div>
-                <p class="text-xs text-gray-500 mt-2"><strong>Reviewed at:</strong> ${complaint.reviewed_at ? escapeHtml(new Date(complaint.reviewed_at).toLocaleString()) : 'N/A'}</p>
+                <p class="text-xs text-gray-500 mt-2"><strong>Reviewed at:</strong> ${complaint.reviewed_at ? escapeHtml(new Date().toLocaleString()) : 'N/A'}</p>
             </div>
         `;
 
@@ -1865,388 +1956,335 @@ async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
     
         
 // --- Professional Notification System ---
-        const notificationBell = document.getElementById('notification-bell');
-        const notificationCountSpan = document.getElementById('notification-count');
-        const notificationDropdown = document.getElementById('notification-dropdown');
-        const notificationList = document.getElementById('notification-list');
-        const notificationLoading = document.getElementById('notification-loading');
-        const noNotifications = document.getElementById('no-notifications');
-        const notificationFooter = document.getElementById('notification-footer');
-        const markAllReadBtn = document.getElementById('mark-all-read');
 
-        let notifications = []; // Store all fetched notifications
-        let isNotificationDropdownOpen = false;
-        let notificationRefreshInterval = null;
+  const notificationBell = document.getElementById('notification-bell');
+  const notificationCountSpan = document.getElementById('notification-count');
+  const notificationDropdown = document.getElementById('notification-dropdown');
+  const notificationList = document.getElementById('notification-list');
+  const notificationLoading = document.getElementById('notification-loading');
+  const noNotifications = document.getElementById('no-notifications');
+  const notificationFooter = document.getElementById('notification-footer');
+  const markAllReadBtn = document.getElementById('mark-all-read');
 
-        // Professional notification state management
-        const NotificationState = {
-            isLoading: false,
-            hasError: false,
-            lastFetchTime: null,
-            unreadCount: 0
-        };
+  //if (!notificationList) return; // nothing to do if markup missing
 
-        // Enhanced time formatting for notifications
-        function formatNotificationTime(timestamp) {
-            const now = new Date();
-            const notificationDate = new Date(timestamp);
-            const diffInSeconds = Math.floor((now - notificationDate) / 1000);
-            const diffInMinutes = Math.floor(diffInSeconds / 60);
-            const diffInHours = Math.floor(diffInMinutes / 60);
-            const diffInDays = Math.floor(diffInHours / 24);
+  let notifications = [];
+  let isNotificationDropdownOpen = false;
+  let notificationRefreshInterval = null;
 
-            if (diffInSeconds < 30) {
-                return 'Just now';
-            } else if (diffInSeconds < 60) {
-                return `${diffInSeconds}s ago`;
-            } else if (diffInMinutes < 60) {
-                return `${diffInMinutes}m ago`;
-            } else if (diffInHours < 24) {
-                return `${diffInHours}h ago`;
-            } else if (diffInDays < 7) {
-                return `${diffInDays}d ago`;
-            } else {
-                return notificationDate.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    ...(notificationDate.getFullYear() !== now.getFullYear() && { year: 'numeric' })
-                });
-            }
-        }
+  const NotificationState = {
+    isLoading: false,
+    hasError: false,
+    lastFetchTime: null,
+    unreadCount: 0
+  };
 
-        // Professional notification fetching with error handling
-        async function fetchNotifications(showLoading = false) {
-            if (NotificationState.isLoading) return;
-            
-            NotificationState.isLoading = true;
-            NotificationState.hasError = false;
+  function formatNotificationTime(timestamp) {
+    const now = new Date();
+    const notificationDate = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - notificationDate) / 1000);
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
 
-            if (showLoading && isNotificationDropdownOpen) {
-                showNotificationLoading();
-            }
-
-            try {
-        const response = await authenticatedFetch('/api/admin/admin-notifications', {
-            method: 'GET'
-        });
-
-        if (!response) return; // Already redirected due to auth failure
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-                const data = await response.json();
-                notifications = Array.isArray(data) ? data : [];
-                NotificationState.lastFetchTime = new Date();
-                
-                updateNotificationState();
-                if (isNotificationDropdownOpen) {
-                    renderNotifications();
-                }
-
-            } catch (error) {
-                console.error('Error fetching notifications:', error);
-                NotificationState.hasError = true;
-                
-                if (isNotificationDropdownOpen) {
-                    showNotificationError(error.message);
-                }
-            } finally {
-                NotificationState.isLoading = false;
-            }
-        }
-
-        // Update notification badge and count
-        function updateNotificationState() {
-            const unreadNotifications = notifications.filter(notif => !notif.is_read);
-            NotificationState.unreadCount = unreadNotifications.length;
-
-            // Update badge
-            if (NotificationState.unreadCount > 0) {
-                notificationCountSpan.textContent = NotificationState.unreadCount > 99 ? '99+' : NotificationState.unreadCount.toString();
-                notificationCountSpan.style.display = 'flex';
-            } else {
-                notificationCountSpan.style.display = 'none';
-            }
-
-            // Update mark all read button visibility
-            if (markAllReadBtn) {
-                markAllReadBtn.style.display = NotificationState.unreadCount > 0 ? 'block' : 'none';
-            }
-        }
-
-        // Professional notification rendering
-        function renderNotifications() {
-            hideNotificationLoading();
-            hideNotificationError();
-
-            if (notifications.length === 0) {
-                showNoNotifications();
-                return;
-            }
-
-            hideNoNotifications();
-            notificationList.innerHTML = '';
-
-            // Group notifications by read status
-            const unreadNotifications = notifications.filter(n => !n.is_read);
-            const readNotifications = notifications.filter(n => n.is_read);
-            const sortedNotifications = [...unreadNotifications, ...readNotifications];
-
-            sortedNotifications.forEach(notif => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `notification-item ${!notif.is_read ? 'unread' : ''}`;
-                itemDiv.dataset.id = notif.notification_id;
-
-                const senderName = notif.first_name && notif.last_name 
-                    ? `${notif.first_name} ${notif.last_name}`
-                    : notif.email || 'System';
-
-                itemDiv.innerHTML = `
-                    <div class="notification-content">
-                        <div class="notification-sender">${senderName}</div>
-                        <div class="notification-message">${notif.message}</div>
-                        <div class="notification-time">${formatNotificationTime(notif.created_at)}</div>
-                    </div>
-                `;
-
-                itemDiv.addEventListener('click', () => handleNotificationClick(notif, itemDiv));
-                notificationList.appendChild(itemDiv);
-            });
-
-            // Show footer if there are many notifications
-            if (notifications.length >= 5) {
-                notificationFooter.style.display = 'block';
-            }
-        }
-
-        // Handle notification click with professional UX
-        async function handleNotificationClick(notif, itemElement) {
-            // Mark as read if unread
-            if (!notif.is_read) {
-                try {
-                    const response = await fetch(`/api/admin/notifications/${notif.notification_id}/read`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-
-                    if (response.ok) {
-                        // Update local state
-                        notif.is_read = true;
-                        itemElement.classList.remove('unread');
-                        
-                        // Update global state
-                        NotificationState.unreadCount = Math.max(0, NotificationState.unreadCount - 1);
-                        updateNotificationState();
-                    }
-                } catch (error) {
-                    console.error('Failed to mark notification as read:', error);
-                }
-            }
-
-            // Navigate to link if provided
-            if (notif.link && notif.link.trim()) {
-  closeNotificationDropdown();
-  setTimeout(() => {
-    if (notif.link.startsWith('/Admin_dashboard.html')) {
-      window.location.href = notif.link;
+    if (diffInSeconds < 30) {
+        return 'Just now';
+    } else if (diffInSeconds < 60) {
+        return `${diffInSeconds}s ago`;
+    } else if (diffInMinutes < 60) {
+        return `${diffInMinutes}m ago`;
+    } else if (diffInHours < 24) {
+        return `${diffInHours}h ago`;
+    } else if (diffInDays < 7) {
+        return `${diffInDays}d ago`;
     } else {
-      console.warn('Notification link not valid for admin dashboard:', notif.link);
+        return notificationDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            ...(notificationDate.getFullYear() !== now.getFullYear() && { year: 'numeric' })
+        });
     }
-  }, 150);
 }
 
+  // Keep spinner element in DOM — just toggle its visibility
+  function showNotificationLoading() {
+    if (notificationLoading) {
+      notificationLoading.style.display = 'flex'; // use flex so it's centered by your CSS
+    }
+    if (noNotifications) noNotifications.style.display = 'none';
+    // remove only notification items, leave spinner and other static elements intact
+    notificationList.querySelectorAll('.notification-item').forEach(item => item.remove());
+  }
+
+  function hideNotificationLoading() {
+    if (notificationLoading) notificationLoading.style.display = 'none';
+  }
+
+  function showNoNotifications() {
+    if (noNotifications) noNotifications.style.display = 'block';
+    if (notificationFooter) notificationFooter.style.display = 'none';
+  }
+
+  function hideNoNotifications() {
+    if (noNotifications) noNotifications.style.display = 'none';
+  }
+
+  function showNotificationError(message) {
+    notificationList.innerHTML = `
+      <div class="notification-error" style="padding: 20px; text-align: center;">
+        <i data-lucide="wifi-off" class="w-8 h-8 mx-auto mb-2 text-red-400"></i>
+        <div class="text-sm font-medium text-red-600 mb-1">Connection Error</div>
+        <div class="text-xs text-red-500">${String(message)}</div>
+        <button id="notification-try-again" class="mt-2 text-xs text-blue-600 hover:text-blue-800">
+          Try again
+        </button>
+      </div>
+    `;
+    // make sure icons render
+    if (window.lucide) lucide.createIcons();
+
+    // attach try-again handler
+    const tryBtn = document.getElementById('notification-try-again');
+    if (tryBtn) tryBtn.addEventListener('click', () => fetchNotifications(true));
+  }
+
+  function hideNotificationError() {
+    const err = notificationList.querySelector('.notification-error');
+    if (err) err.remove();
+  }
+
+  function updateNotificationState() {
+    const unreadNotifications = notifications.filter(notif => !notif.is_read);
+    NotificationState.unreadCount = unreadNotifications.length;
+
+    if (notificationCountSpan) {
+      if (NotificationState.unreadCount > 0) {
+        notificationCountSpan.textContent = NotificationState.unreadCount > 99 ? '99+' : String(NotificationState.unreadCount);
+        notificationCountSpan.style.display = 'flex';
+      } else {
+        notificationCountSpan.style.display = 'none';
+      }
+    }
+
+    if (markAllReadBtn) {
+      markAllReadBtn.style.display = NotificationState.unreadCount > 0 ? 'block' : 'none';
+    }
+  }
+
+  function renderNotifications() {
+    hideNotificationLoading();
+    hideNotificationError();
+
+    // remove prior items but keep spinner/no-notifications blocks
+    notificationList.querySelectorAll('.notification-item, .notification-empty-placeholder').forEach(el => el.remove());
+
+    if (!notifications || notifications.length === 0) {
+      showNoNotifications();
+      return;
+    }
+
+    hideNoNotifications();
+
+    // Group unread first then read
+    const unread = notifications.filter(n => !n.is_read);
+    const read = notifications.filter(n => n.is_read);
+    const sorted = [...unread, ...read];
+
+    sorted.forEach(notif => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = `notification-item ${!notif.is_read ? 'unread' : ''}`;
+      itemDiv.dataset.id = notif.notification_id;
+
+      const senderName = (notif.first_name && notif.last_name)
+        ? `${notif.first_name} ${notif.last_name}`
+        : (notif.email || 'System');
+
+      itemDiv.innerHTML = `
+        <div class="notification-content px-4 py-3 border-b border-gray-100">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="notification-sender text-sm font-medium text-gray-800">${senderName}</div>
+              <div class="notification-message text-sm text-gray-700 mt-1">${notif.message}</div>
+              <div class="notification-time text-xs text-gray-400 mt-1">${formatNotificationTime(notif.created_at)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      itemDiv.addEventListener('click', () => handleNotificationClick(notif, itemDiv));
+      notificationList.appendChild(itemDiv);
+    });
+
+    // footer visibility
+    if (notificationFooter) {
+      notificationFooter.style.display = notifications.length >= 5 ? 'block' : 'none';
+    }
+  }
+
+  // Fetching
+  async function fetchNotifications(showLoading = false) {
+    if (NotificationState.isLoading) return;
+    NotificationState.isLoading = true;
+    NotificationState.hasError = false;
+
+    if (showLoading && isNotificationDropdownOpen) {
+      showNotificationLoading();
+    }
+
+    try {
+      const response = await authenticatedFetch('/api/admin/admin-notifications', { method: 'GET' });
+      if (!response) return; // auth redirect handled elsewhere
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      // support both { success:true, notifications: [] } and raw array
+      notifications = Array.isArray(data) ? data : (data.notifications || data);
+      NotificationState.lastFetchTime = new Date();
+
+      updateNotificationState();
+      if (isNotificationDropdownOpen) renderNotifications();
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      NotificationState.hasError = true;
+      if (isNotificationDropdownOpen) showNotificationError(err.message || err);
+    } finally {
+      NotificationState.isLoading = false;
+      // ensure spinner hidden after fetch attempt completes
+      hideNotificationLoading();
+    }
+  }
+
+  // Mark single notification read (on click)
+  async function handleNotificationClick(notif, itemElement) {
+    if (!notif) return;
+    if (!notif.is_read) {
+      try {
+        const res = await fetch(`/api/admin/notifications/${notif.notification_id}/read`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }});
+        if (res.ok) {
+          notif.is_read = true;
+          if (itemElement) itemElement.classList.remove('unread');
+          NotificationState.unreadCount = Math.max(0, NotificationState.unreadCount - 1);
+          updateNotificationState();
         }
+      } catch (err) {
+        console.error('Failed to mark notification read:', err);
+      }
+    }
 
-        // Mark all notifications as read
-        async function markAllNotificationsAsRead() {
-            if (NotificationState.unreadCount === 0) return;
-
-            try {
-                const response = await fetch('/api/admin/notifications/mark-all-read', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                if (response.ok) {
-                    // Update all notifications to read
-                    notifications.forEach(notif => {
-                        notif.is_read = true;
-                    });
-                    
-                    NotificationState.unreadCount = 0;
-                    updateNotificationState();
-                    
-                    // Re-render notifications
-                    renderNotifications();
-                    
-                    // Show success feedback
-                    showToast('All notifications marked as read', 'success');
-                }
-            } catch (error) {
-                console.error('Failed to mark all notifications as read:', error);
-                showToast('Failed to mark notifications as read', 'error');
-            }
+    // follow link if present
+    if (notif.link && notif.link.trim()) {
+      closeNotificationDropdown();
+      setTimeout(() => {
+        if (notif.link.startsWith('/Admin_dashboard.html')) {
+          window.location.href = notif.link;
+        } else {
+          console.warn('Notification link not valid:', notif.link);
         }
+      }, 150);
+    }
+  }
 
-        // Professional UI state management
-        function showNotificationLoading() {
-            notificationLoading.style.display = 'block';
-            noNotifications.style.display = 'none';
-            notificationList.innerHTML = '';
-        }
+  // Mark all as read
+  async function markAllNotificationsAsRead() {
+    if (NotificationState.unreadCount === 0) return;
+    try {
+      const response = await fetch('/api/admin/notifications/mark-all-read', { method: 'PUT', headers: { 'Content-Type': 'application/json' }});
+      if (response.ok) {
+        notifications.forEach(n => n.is_read = true);
+        NotificationState.unreadCount = 0;
+        updateNotificationState();
+        renderNotifications();
+        showToast('All notifications marked as read', 'success');
+      } else {
+        showToast('Failed to mark notifications as read', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to mark all notifications:', err);
+      showToast('Failed to mark notifications as read', 'error');
+    }
+  }
 
-        function hideNotificationLoading() {
-            notificationLoading.style.display = 'none';
-        }
+  // Dropdown open/close
+  function openNotificationDropdown() {
+    if (isNotificationDropdownOpen) return;
+    isNotificationDropdownOpen = true;
+    if (notificationDropdown) notificationDropdown.classList.add('active');
+    fetchNotifications(true);
+    if (notificationBell) notificationBell.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+  }
 
-        function showNoNotifications() {
-            noNotifications.style.display = 'block';
-            notificationFooter.style.display = 'none';
-        }
+  function closeNotificationDropdown() {
+    if (!isNotificationDropdownOpen) return;
+    isNotificationDropdownOpen = false;
+    if (notificationDropdown) notificationDropdown.classList.remove('active');
+    if (notificationBell) notificationBell.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+  }
 
-        function hideNoNotifications() {
-            noNotifications.style.display = 'none';
-        }
+  function toggleNotificationDropdown() {
+    isNotificationDropdownOpen ? closeNotificationDropdown() : openNotificationDropdown();
+  }
 
-        function showNotificationError(message) {
-            notificationList.innerHTML = `
-                <div class="notification-error" style="padding: 20px; text-align: center;">
-                    <i data-lucide="wifi-off" class="w-8 h-8 mx-auto mb-2 text-red-400"></i>
-                    <div class="text-sm font-medium text-red-600 mb-1">Connection Error</div>
-                    <div class="text-xs text-red-500">${message}</div>
-                    <button onclick="fetchNotifications(true)" class="mt-2 text-xs text-blue-600 hover:text-blue-800">
-                        Try again
-                    </button>
-                </div>
-            `;
-            lucide.createIcons();
-        }
+  // Toast
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full`;
+    const colors = { success: 'bg-green-500 text-white', error: 'bg-red-500 text-white', info: 'bg-blue-500 text-white' };
+    toast.className += ` ${colors[type] || colors.info}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.remove('translate-x-full'));
+    setTimeout(() => { toast.classList.add('translate-x-full'); setTimeout(() => toast.remove(), 300); }, 3000);
+  }
 
-        function hideNotificationError() {
-            const errorElement = notificationList.querySelector('.notification-error');
-            if (errorElement) {
-                errorElement.remove();
-            }
-        }
+  // Events
+  if (notificationBell) {
+    notificationBell.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      toggleNotificationDropdown();
+    });
+  }
 
-        // Professional dropdown management
-        function openNotificationDropdown() {
-            if (isNotificationDropdownOpen) return;
-            
-            isNotificationDropdownOpen = true;
-            notificationDropdown.classList.add('active');
-            
-            // Fetch latest notifications when opening
-            fetchNotifications(true);
-            
-            // Update bell icon to active state
-            notificationBell.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
-        }
+  if (markAllReadBtn) {
+    markAllReadBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      markAllNotificationsAsRead();
+    });
+  }
 
-        function closeNotificationDropdown() {
-            if (!isNotificationDropdownOpen) return;
-            
-            isNotificationDropdownOpen = false;
-            notificationDropdown.classList.remove('active');
-            
-            // Remove active state from bell
-            notificationBell.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
-        }
+  document.addEventListener('click', (ev) => {
+    if (!notificationDropdown.contains(ev.target) && !notificationBell.contains(ev.target)) {
+      closeNotificationDropdown();
+    }
+  });
 
-        function toggleNotificationDropdown() {
-            if (isNotificationDropdownOpen) {
-                closeNotificationDropdown();
-            } else {
-                openNotificationDropdown();
-            }
-        }
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && isNotificationDropdownOpen) closeNotificationDropdown();
+  });
 
-        // Simple toast notification system
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full`;
-            
-            const colors = {
-                success: 'bg-green-500 text-white',
-                error: 'bg-red-500 text-white',
-                info: 'bg-blue-500 text-white'
-            };
-            
-            toast.className += ` ${colors[type] || colors.info}`;
-            toast.textContent = message;
-            
-            document.body.appendChild(toast);
-            
-            // Animate in
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-x-full');
-            });
-            
-            // Auto remove after 3 seconds
-            setTimeout(() => {
-                toast.classList.add('translate-x-full');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
+  // Polling
+  function startNotificationPolling() {
+    // initial fetch (no spinner)
+    fetchNotifications(false);
 
-        // Event Listeners
-        notificationBell.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toggleNotificationDropdown();
-        });
+    notificationRefreshInterval = setInterval(() => {
+      if (!isNotificationDropdownOpen) fetchNotifications(false);
+    }, 45_000);
+  }
 
-        if (markAllReadBtn) {
-            markAllReadBtn.addEventListener('click', (event) => {
-                event.stopPropagation();
-                markAllNotificationsAsRead();
-            });
-        }
+  function stopNotificationPolling() {
+    if (notificationRefreshInterval) {
+      clearInterval(notificationRefreshInterval);
+      notificationRefreshInterval = null;
+    }
+  }
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (event) => {
-            if (!notificationDropdown.contains(event.target) && !notificationBell.contains(event.target)) {
-                closeNotificationDropdown();
-            }
-        });
+  // Make sure lucide icons render for static markup
+  if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
 
-        // Keyboard navigation
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && isNotificationDropdownOpen) {
-                closeNotificationDropdown();
-            }
-        });
+  // Start
+  startNotificationPolling();
+  window.addEventListener('beforeunload', stopNotificationPolling);
 
-        // Professional polling system
-        function startNotificationPolling() {
-            // Initial fetch
-            fetchNotifications();
-            
-            // Set up intelligent polling
-            notificationRefreshInterval = setInterval(() => {
-                // Only poll if not actively viewing notifications
-                if (!isNotificationDropdownOpen) {
-                    fetchNotifications();
-                }
-            }, 45000); // Poll every 45 seconds
-        }
-
-        function stopNotificationPolling() {
-            if (notificationRefreshInterval) {
-                clearInterval(notificationRefreshInterval);
-                notificationRefreshInterval = null;
-            }
-        }
-
-        // Initialize notification system when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            startNotificationPolling();
-        });
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            stopNotificationPolling();
-        });
 
 
 
@@ -2257,12 +2295,12 @@ async function testAuth() {
         const response = await authenticatedFetch('/auth/validate-session');
         if (response) {
             const data = await response.json();
-            console.log('✅ Auth test successful:', data);
+            console.log('Auth test successful:', data);
         } else {
-            console.log('❌ Auth test failed: No response');
+            console.log('Auth test failed: No response');
         }
     } catch (error) {
-        console.error('❌ Auth test failed:', error);
+        console.error('Auth test failed:', error);
     }
 }
 
@@ -2275,9 +2313,9 @@ async function testAuth() {
 async function fetchAndRenderInternDetails(internId) {
     showSpinner();
     try {
-        const response = await fetch('/api/admin/interns/${internId}', {
+        const response = await fetch(`/api/admin/interns/${internId}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+        credentials: 'include',
         });
         if (!response.ok) {
             const errorData = await response.json();
@@ -2438,6 +2476,7 @@ async function handleEditInternSubmit(event) {
             // The 'Content-Type' header is automatically set to 'multipart/form-data' by the browser
             // when you use a FormData object. Do not set it manually!
             body: formData,
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -2464,12 +2503,12 @@ async function handleEditInternSubmit(event) {
     let currentUser = null;
     let isAdminOrSuperadmin = false;
 
-    // First, try to validate session with server
     try {
         currentUser = await validateSession();
+
         if (currentUser) {
             isAdminOrSuperadmin = (currentUser.role === 'admin' || currentUser.role === 'superadmin');
-            
+
             // Update logged-in user display
             if (loggedInUserNameSpan) {
                 const displayName = currentUser.first_name && currentUser.last_name 
@@ -2478,12 +2517,22 @@ async function handleEditInternSubmit(event) {
                 loggedInUserNameSpan.textContent = displayName;
             }
 
-            // Show/hide Register Admin link based on superadmin role
+            // Handle role-based sidebar visibility
             if (currentUser.role === 'superadmin') {
-                registerAdminLink.classList.remove('hidden');
+                const accountsManagementLink = document.getElementById("accountsManagementLink");
+                if (accountsManagementLink) {
+                    accountsManagementLink.classList.remove("hidden");
+                }
+
+                const registerAdminLink = document.getElementById("registerAdminLink");
+                if (registerAdminLink) {
+                    registerAdminLink.classList.remove("hidden");
+                }
             } else {
+                // For admins: hide Register Admin, but keep others visible
                 registerAdminLink.classList.add('hidden');
             }
+
         } else {
             throw new Error('No valid session');
         }
@@ -2495,6 +2544,8 @@ async function handleEditInternSubmit(event) {
         });
         return;
     }
+
+
             // --- Logout functionality ---
             if (signOutLink) {
                 signOutLink.addEventListener('click', async (event) => {
@@ -3716,6 +3767,217 @@ async function handleUserRejection(e) {
 }
 
 
+// Render Accounts Management
+// Sidebar link for Accounts Management
+if (accountsManagementLink) {
+    accountsManagementLink.addEventListener('click', (event) => {
+        event.preventDefault();
+
+        // Only superadmins can manage accounts
+        if (currentUser.role !== 'superadmin') {
+            showModal('Access Denied', 'Only superadmins can manage intern accounts.');
+            return;
+        }
+
+        console.log('Accounts Management clicked!');
+        renderAccountsManagement();
+    });
+}
+
+// Render Accounts Management
+async function renderAccountsManagement(page = 1, limit = 10) {
+    setBreadcrumb('Accounts');
+
+    mainContentArea.innerHTML = `
+        <div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-xl">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Manage Intern Accounts</h1>
+            <p class="text-gray-600 mb-6">Enable or disable intern accounts</p>
+
+            <div id="accounts-container" class="overflow-x-auto">
+                <p id="loading-accounts" class="text-center text-gray-500 italic">Loading accounts...</p>
+            </div>
+            <div id="accounts-pagination" class="flex justify-center mt-4 space-x-2"></div>
+        </div>
+    `;
+
+    const container = document.getElementById('accounts-container');
+    const pagination = document.getElementById('accounts-pagination');
+
+    try {
+        const response = await authenticatedFetch(`/api/superadmin/accounts?page=${page}&limit=${limit}`, {
+            method: 'GET'
+        });
+
+        if (!response) return;
+        if (!response.ok) {
+            throw new Error('Failed to fetch accounts');
+        }
+
+        const data = await response.json();
+        document.getElementById('loading-accounts').remove();
+
+        if (!data.users || data.users.length === 0) {
+            container.innerHTML = `
+                <div class="text-center p-8">
+                    <i data-lucide="users" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
+                    <p class="text-gray-500 text-lg">No accounts found</p>
+                    <p class="text-gray-400 text-sm mt-2">All intern accounts are up to date</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Create table
+        container.innerHTML = `
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Intern Info</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="accounts-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+        `;
+
+        const tbody = document.getElementById('accounts-tbody');
+
+        data.users.forEach(user => {
+            const isDisabled = !!user.is_disabled;
+            const row = document.createElement('tr');
+            row.className = isDisabled ? 'bg-gray-50 opacity-90' : 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${user.first_name || ''} ${user.last_name || ''}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${user.email || ''}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    ${
+                        isDisabled
+                            ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Disabled</span>`
+                            : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>`
+                    }
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button 
+                        class="toggle-account-btn ${
+                            isDisabled ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                        } text-white px-4 py-2 rounded-md text-sm transition-colors duration-200"
+                        data-user-id="${user.user_id}"
+                        data-user-name="${(user.first_name || '') + ' ' + (user.last_name || '')}"
+                        data-action="${isDisabled ? 'enable' : 'disable'}"
+                    >
+                        ${isDisabled ? 'Enable' : 'Disable'}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Event listeners for Enable/Disable
+        document.querySelectorAll('.toggle-account-btn').forEach(btn => {
+            btn.addEventListener('click', handleToggleAccount);
+        });
+
+        // Pagination (your renderPagination helper)
+        if (data.total_pages > 1) {
+            renderPagination(pagination, data.current_page, data.total_pages, limit, renderAccountsManagement);
+        }
+
+        lucide.createIcons();
+    } catch (error) {
+        console.error('Error fetching accounts:', error);
+        const loadingEl = document.getElementById('loading-accounts');
+        if (loadingEl) loadingEl.textContent = 'Failed to load accounts';
+        showModal('Error', 'Failed to load accounts: ' + error.message);
+    }
+}
+
+
+let confirmResolve;
+
+// Show confirm modal with custom message (message may include HTML)
+function showConfirmModal(title, message) {
+    return new Promise((resolve) => {
+        confirmResolve = resolve;
+        const titleEl = document.getElementById('confirmModalTitle');
+        const messageEl = document.getElementById('confirmModalMessage');
+        titleEl.textContent = title;
+        // NOTE: using innerHTML here to allow <b>name</b> markup. Avoid untrusted user content.
+        messageEl.innerHTML = message;
+
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.querySelector('div').classList.remove('scale-95');
+            modal.querySelector('div').classList.add('scale-100');
+        }, 10);
+    });
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById('confirmModal');
+    modal.querySelector('div').classList.remove('scale-100');
+    modal.querySelector('div').classList.add('scale-95');
+
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 150);
+}
+
+// Ensure these addEventListener calls run once on script load (check elements exist)
+const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+const confirmOkBtn = document.getElementById('confirmOkBtn');
+if (confirmCancelBtn && confirmOkBtn) {
+    confirmCancelBtn.addEventListener('click', () => {
+        closeConfirmModal();
+        if (typeof confirmResolve === 'function') confirmResolve(false);
+    });
+    confirmOkBtn.addEventListener('click', () => {
+        closeConfirmModal();
+        if (typeof confirmResolve === 'function') confirmResolve(true);
+    });
+}
+
+
+async function handleToggleAccount(event) {
+    const btn = event.currentTarget;
+    const userId = btn.dataset.userId;
+    const userName = btn.dataset.userName;
+    const action = btn.dataset.action; // "disable" or "enable"
+
+    const confirmed = await showConfirmModal(
+        "Confirm Account Action",
+        `Are you sure you want to ${action} <b>${userName}</b>'s account?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const response = await authenticatedFetch(`/api/superadmin/accounts/${userId}/${action}`, {
+            method: 'PUT'
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || `Failed to ${action} account`);
+        }
+
+        const result = await response.json();
+        showModal('Success', `${userName}'s account has been ${action}d successfully.`);
+        renderAccountsManagement(); // Refresh list
+    } catch (error) {
+        console.error(`Error ${action} account:`, error);
+        showModal('Error', `Failed to ${action} account: ${error.message}`);
+    }
+}
+
+
+
 
             // --- Sidebar Navigation Event Listeners ---
             viewInternsLink.addEventListener('click', (event) => {
@@ -3759,6 +4021,12 @@ async function handleUserRejection(e) {
              hideSpinner();
             });
 
+
+            /*
+            document.getElementById('accountsLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            renderAccountsManagement();
+            });**/
 
             // Add event listener for pending users link
             document.getElementById('pendingUsersLink').addEventListener('click', (e) => {

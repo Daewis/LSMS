@@ -17,41 +17,54 @@ if (typeof lucide !== 'undefined' && lucide) {
 
 
 // --- Global variable for modal redirect URL ---
+// --- Global variable for modal redirect URL ---
 let modalRedirectTarget = null;
+let modalCallback = null; // New: store callback
 
 // --- Custom Modal Functions ---
-function showModal(title, message, redirectUrl = null) {
+function showModal(title, message, redirectUrl = null, callback = null) {
     const modalTitle = document.getElementById('modalTitle');
     const modalMessage = document.getElementById('modalMessage');
-    
+    const customModal = document.getElementById('customModal');
+
     // Check if modal elements exist before trying to use them
-    if (!modalTitle || !modalMessage) {
+    if (!modalTitle || !modalMessage || !customModal) {
         console.warn('Modal elements not found on this page');
         // Fallback to alert for pages without modal
         alert(`${title}: ${message}`);
         if (redirectUrl) {
             window.location.href = redirectUrl;
         }
+        if (callback && typeof callback === "function") {
+            callback();
+        }
         return;
     }
     
     modalTitle.textContent = title;
     modalMessage.textContent = message;
-    modalRedirectTarget = redirectUrl; // Store the redirect URL
+    modalRedirectTarget = redirectUrl;   // Store the redirect URL
+    modalCallback = callback;            // Store callback
     
-    if (customModal) {
-        customModal.style.display = 'flex'; // Make the modal visible
-    }
+    customModal.style.display = 'flex';  // Show modal
 }
 
 function closeModal() {
     const customModal = document.getElementById('customModal');
     if (customModal) {
-        customModal.style.display = 'none'; // Hide the modal
+        customModal.style.display = 'none'; // Hide modal
     }
+
+    // Handle redirect
     if (modalRedirectTarget) {
-        window.location.href = modalRedirectTarget; // Perform redirect if a target is set
-        modalRedirectTarget = null; // Clear the redirect target after use
+        window.location.href = modalRedirectTarget;
+        modalRedirectTarget = null;
+    }
+
+    // Handle callback
+    if (modalCallback && typeof modalCallback === "function") {
+        modalCallback();
+        modalCallback = null; // clear after use
     }
 }
 
@@ -118,6 +131,15 @@ if (signInForm) {
                 return;
             }
 
+            // Handle disabled accounts
+            if (result.message && result.message.includes('Account disabled')) {
+             showModal(
+             'Account Disabled',
+             'Your account has been disabled. Please contact your administrator for more details.'
+            );
+            return;
+            }
+
             if (response.ok && result.success) {
                 // Store user data and redirect as before
                 const currentUser = {
@@ -161,27 +183,48 @@ if (signInToggleBtn && signInPasswordInput) {
 
 // --- Logic for Sign_up.html form ---
 const signUpForm = document.getElementById('signup-form');
+const loaderOverlay = document.getElementById("loaderOverlay");
 
 
 if (signUpForm) {
     // File upload listeners
-    document.getElementById('user-image-input')?.addEventListener('change', function() {
-        const fileNameDisplay = document.getElementById('user-image-file-name');
-        if (this.files.length > 0) {
-            fileNameDisplay.textContent = `Selected file: ${this.files[0].name}`;
-        } else {
-            fileNameDisplay.textContent = '';
-        }
-    });
+   // File size limits
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;       // 2MB
+const MAX_ACCEPTANCE_SIZE = 1 * 1024 * 1024;  // 1MB
 
-    document.getElementById('acceptance-letter-input')?.addEventListener('change', function() {
-        const fileNameDisplay = document.getElementById('acceptance-letter-file-name');
-        if (this.files.length > 0) {
-            fileNameDisplay.textContent = `Selected file: ${this.files[0].name}`;
-        } else {
-            fileNameDisplay.textContent = '';
+// User Image Validation
+document.getElementById('user-image-input')?.addEventListener('change', function () {
+    const fileNameDisplay = document.getElementById('user-image-file-name');
+    if (this.files.length > 0) {
+        const file = this.files[0];
+        if (file.size > MAX_IMAGE_SIZE) {
+            alert("User image must not exceed 2MB.");
+            this.value = ""; // reset file input
+            fileNameDisplay.textContent = "";
+            return;
         }
-    });
+        fileNameDisplay.textContent = `Selected file: ${file.name}`;
+    } else {
+        fileNameDisplay.textContent = '';
+    }
+});
+
+// Acceptance Letter Validation
+document.getElementById('acceptance-letter-input')?.addEventListener('change', function () {
+    const fileNameDisplay = document.getElementById('acceptance-letter-file-name');
+    if (this.files.length > 0) {
+        const file = this.files[0];
+        if (file.size > MAX_ACCEPTANCE_SIZE) {
+            alert("Acceptance letter must not exceed 1MB.");
+            this.value = ""; // reset file input
+            fileNameDisplay.textContent = "";
+            return;
+        }
+        fileNameDisplay.textContent = `Selected file: ${file.name}`;
+    } else {
+        fileNameDisplay.textContent = '';
+    }
+});
 
     // Grab elements for signup form
     const passwordInput = document.getElementById('password');
@@ -279,7 +322,10 @@ if (signUpForm) {
             }
     
             // Show processing modal (you might want to add a spinner or disable the form)
-            showModal("Processing", "Registering your account...");
+            showModal("Processing", "Registering your account...", null, () => {
+            // Callback: show loader after user clicks "OK"
+            loaderOverlay.classList.remove("hidden");
+            });
     
             const formData = new FormData(event.target);
     
@@ -292,15 +338,18 @@ if (signUpForm) {
                 const result = await response.json();
     
                 if (response.ok) {
+                    loaderOverlay.classList.add("hidden");
                     showModal('Registration Successful', 
                         'Your account has been created and is pending admin approval. You will be notified via email once approved.',
                         '/pending_approval.html' // Fixed: Use string instead of function call
                     );
                 } else {
+                    loaderOverlay.classList.add("hidden");
                     showModal("Registration Failed", result.message || "Registration failed. Please try again.");
                 }
             } catch (error) {
                 console.error('Error during registration:', error);
+                loaderOverlay.classList.add("hidden");
                 showModal("Network Error", "An unexpected error occurred. Please try again later.");
             }
         });

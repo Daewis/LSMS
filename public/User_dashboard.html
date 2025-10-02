@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="/output.css">
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+   <link rel="icon" type="image/png" href="/images/Lasued.png">
+   <style>
         body {
             font-family: 'Inter', sans-serif;
         }
@@ -251,10 +252,7 @@
     <aside class="w-64 bg-gray-900 text-gray-200 flex flex-col shadow-lg">
         <div class="flex items-center justify-center h-16 border-b border-gray-700 px-4">
             <!-- Logo/Brand placeholder -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles text-purple-400 mr-2">
-                <path d="M10 13v7l4-7h6l-9 7 3 4-8-7 4-7H3l9 7Z"/>
-            </svg>
-            <span class="text-xl font-semibold text-white">YourApp</span>
+           <img src="/images/Lasued.png" alt="LSMS Logo" class="h-16 w-auto md:h-18 object-contain"/>
         </div>
 
         <nav class="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
@@ -305,15 +303,6 @@
             </a>
 
         </nav>
-
-        <div class="mt-auto px-2 py-4 border-t border-gray-700">
-            <a href="#" class="flex items-center px-4 py-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings mr-3">
-                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.78 1.28a2 2 0 0 0 .73 2.73l.04.04a2 2 0 0 1 0 2.83l-.04.04a2 2 0 0 0-.73 2.73l.78 1.28a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.78-1.28a2 2 0 0 0-.73-2.73l-.04-.04a2 2 0 0 1 0-2.83l.04-.04a2 2 0 0 0 .73-2.73l-.78-1.28a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
-                </svg>
-                Settings
-            </a>
-        </div>
     </aside>
 
     <!-- Main Content Area -->
@@ -338,10 +327,11 @@
             <button id="mark-all-read" class="mark-all-read" style="display: none;">Mark all as read</button>
         </div>
         <div class="notification-list" id="notification-list">
-            <div class="notification-loading" id="notification-loading" style="display: none;">
-                <i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i>
-                <div class="text-sm">Loading notifications...</div>
-            </div>
+            <div id="notification-loading" class="flex items-center justify-center py-6 hidden">
+                <div class="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-blue-600"></div>
+                 <span class="ml-3 text-gray-500 text-sm">Loading notifications...</span>
+        </div>
+
             <div class="no-notifications" id="no-notifications">
                 <div class="no-notifications-icon">
                     <i data-lucide="bell-off" class="w-full h-full text-gray-400"></i>
@@ -451,8 +441,8 @@
             <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button id="markAttendanceBtn" class="bg-indigo-500 text-white py-3 px-4 rounded-md hover:bg-indigo-600 transition duration-200 text-lg font-medium shadow-sm">
-                        Mark Today's Attendance
+                    <button id="uploadProjectBtn" class="bg-indigo-500 text-white py-3 px-4 rounded-md hover:bg-indigo-600 transition duration-200 text-lg font-medium shadow-sm">
+                        Upload New Project
                     </button>
                     <button id="submitReportBtn" class="bg-green-500 text-white py-3 px-4 rounded-md hover:bg-green-600 transition duration-200 text-lg font-medium shadow-sm">
                         Submit New Report
@@ -869,7 +859,7 @@
                             <h3 class="text-xl font-semibold text-gray-800 mb-4">Important Note</h3>
                             <p class="text-sm text-gray-600 leading-relaxed">
                                 Please ensure all information is accurate. Your request will be reviewed by your supervisor.
-                                You will be notified of the status via email.
+                                You will be notified of the status via notification.
                             </p>
                         </div>
 
@@ -901,6 +891,15 @@
             <div id="editDetailsContainer" class="hidden min-h-screen flex items-center justify-center">
                 <div class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-3xl border border-gray-200">
                     <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Account Settings</h2>
+
+                    <!-- Edit Details success/error message -->
+                <div
+                    id="editDetailsMessageContainer"
+                    class="hidden p-3 mb-4 rounded border text-sm transition-all duration-300"
+                >
+                 <span id="editDetailsMessageText"></span>
+                        </div>
+
 
                     <div class="space-y-8">
                         <!-- My Profile Section -->
@@ -991,6 +990,26 @@
                 </div>
             </div>
             </div>
+
+            <!-- Password Confirmation Modal -->
+<div id="passwordModal"
+     class="fixed inset-0 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg p-6 w-80">
+    <h2 class="text-lg font-semibold mb-4">Confirm Password</h2>
+    <input id="confirmPasswordInput"
+           type="password"
+           class="border rounded w-full p-2 mb-4"
+           placeholder="Enter current password" />
+    <div class="flex justify-end gap-2">
+      <button id="cancelPasswordBtn"
+              class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+      <button id="submitPasswordBtn"
+              class="px-4 py-2 bg-blue-600 text-white rounded">Confirm</button>
+    </div>
+  </div>
+</div>
+
+
         </main>
     </div>
 
@@ -1025,7 +1044,7 @@
             const latestActivitiesList = document.getElementById('latest-activities-list');
 
             // Quick Action Buttons (New)
-            const markAttendanceBtn = document.getElementById('markAttendanceBtn');
+            const uploadProjectBtn = document.getElementById('uploadProjectBtn');
             const submitReportBtn = document.getElementById('submitReportBtn');
             const requestLeaveBtn = document.getElementById('requestLeaveBtn');
             const viewComplaintsBtn = document.getElementById('viewComplaintsBtn');
@@ -1298,7 +1317,7 @@ loadDashboard();
     try {
         const response = await fetch('/auth/logout', { 
             method: 'POST',
-            credentials: 'include'  // Add this
+            credentials: 'include'  
         });
         const result = await response.json();
         if (response.ok && result.success) {
@@ -1482,6 +1501,122 @@ function formatNotificationTime(timestamp) {
     }
 }
 
+// Keep spinner element in DOM — just toggle its visibility
+  function showNotificationLoading() {
+    if (notificationLoading) {
+      notificationLoading.style.display = 'flex'; // use flex so it's centered by your CSS
+    }
+    if (noNotifications) noNotifications.style.display = 'none';
+    // remove only notification items, leave spinner and other static elements intact
+    notificationList.querySelectorAll('.notification-item').forEach(item => item.remove());
+  }
+
+  function hideNotificationLoading() {
+    if (notificationLoading) notificationLoading.style.display = 'none';
+  }
+
+  function showNoNotifications() {
+    if (noNotifications) noNotifications.style.display = 'block';
+    if (notificationFooter) notificationFooter.style.display = 'none';
+  }
+
+  function hideNoNotifications() {
+    if (noNotifications) noNotifications.style.display = 'none';
+  }
+
+  function showNotificationError(message) {
+    notificationList.innerHTML = `
+      <div class="notification-error" style="padding: 20px; text-align: center;">
+        <i data-lucide="wifi-off" class="w-8 h-8 mx-auto mb-2 text-red-400"></i>
+        <div class="text-sm font-medium text-red-600 mb-1">Connection Error</div>
+        <div class="text-xs text-red-500">${String(message)}</div>
+        <button id="notification-try-again" class="mt-2 text-xs text-blue-600 hover:text-blue-800">
+          Try again
+        </button>
+      </div>
+    `;
+    // make sure icons render
+    if (window.lucide) lucide.createIcons();
+
+    // attach try-again handler
+    const tryBtn = document.getElementById('notification-try-again');
+    if (tryBtn) tryBtn.addEventListener('click', () => fetchNotifications(true));
+  }
+
+  function hideNotificationError() {
+    const err = notificationList.querySelector('.notification-error');
+    if (err) err.remove();
+  }
+
+  function updateNotificationState() {
+    const unreadNotifications = notifications.filter(notif => !notif.is_read);
+    NotificationState.unreadCount = unreadNotifications.length;
+
+    if (notificationCountSpan) {
+      if (NotificationState.unreadCount > 0) {
+        notificationCountSpan.textContent = NotificationState.unreadCount > 99 ? '99+' : String(NotificationState.unreadCount);
+        notificationCountSpan.style.display = 'flex';
+      } else {
+        notificationCountSpan.style.display = 'none';
+      }
+    }
+
+    if (markAllReadBtn) {
+      markAllReadBtn.style.display = NotificationState.unreadCount > 0 ? 'block' : 'none';
+    }
+  }
+
+  function renderNotifications() {
+    hideNotificationLoading();
+    hideNotificationError();
+
+    // remove prior items but keep spinner/no-notifications blocks
+    notificationList.querySelectorAll('.notification-item, .notification-empty-placeholder').forEach(el => el.remove());
+
+    if (!notifications || notifications.length === 0) {
+      showNoNotifications();
+      return;
+    }
+
+    hideNoNotifications();
+
+    // Group unread first then read
+    const unread = notifications.filter(n => !n.is_read);
+    const read = notifications.filter(n => n.is_read);
+    const sorted = [...unread, ...read];
+
+    sorted.forEach(notif => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = `notification-item ${!notif.is_read ? 'unread' : ''}`;
+      itemDiv.dataset.id = notif.notification_id;
+
+      const senderName = (notif.first_name && notif.last_name)
+        ? `${notif.first_name} ${notif.last_name}`
+        : (notif.email || 'System');
+
+      itemDiv.innerHTML = `
+        <div class="notification-content px-4 py-3 border-b border-gray-100">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="notification-sender text-sm font-medium text-gray-800">${senderName}</div>
+              <div class="notification-message text-sm text-gray-700 mt-1">${notif.message}</div>
+              <div class="notification-time text-xs text-gray-400 mt-1">${formatNotificationTime(notif.created_at)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      itemDiv.addEventListener('click', () => handleNotificationClick(notif, itemDiv));
+      notificationList.appendChild(itemDiv);
+    });
+
+    // footer visibility
+    if (notificationFooter) {
+      notificationFooter.style.display = notifications.length >= 5 ? 'block' : 'none';
+    }
+  }
+
+
 // Professional notification fetching with error handling
 async function fetchNotifications(showLoading = false) {
     if (NotificationState.isLoading) return;
@@ -1527,64 +1662,6 @@ async function fetchNotifications(showLoading = false) {
     }
 }
 
-// Update notification badge and count
-function updateNotificationState() {
-    const unreadNotifications = notifications.filter(notif => !notif.is_read);
-    NotificationState.unreadCount = unreadNotifications.length;
-
-    // Update badge
-    if (NotificationState.unreadCount > 0) {
-        notificationCountSpan.textContent = NotificationState.unreadCount > 99 ? '99+' : NotificationState.unreadCount.toString();
-        notificationCountSpan.style.display = 'flex';
-    } else {
-        notificationCountSpan.style.display = 'none';
-    }
-
-    // Update mark all read button visibility
-    if (markAllReadBtn) {
-        markAllReadBtn.style.display = NotificationState.unreadCount > 0 ? 'block' : 'none';
-    }
-}
-
-// Professional notification rendering
-function renderNotifications() {
-    hideNotificationLoading();
-    hideNotificationError();
-
-    if (notifications.length === 0) {
-        showNoNotifications();
-        return;
-    }
-
-    hideNoNotifications();
-    notificationList.innerHTML = '';
-
-    // Group notifications by read status
-    const unreadNotifications = notifications.filter(n => !n.is_read);
-    const readNotifications = notifications.filter(n => n.is_read);
-    const sortedNotifications = [...unreadNotifications, ...readNotifications];
-
-    sortedNotifications.forEach(notif => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = `notification-item ${!notif.is_read ? 'unread' : ''}`;
-        itemDiv.dataset.id = notif.notification_id;
-
-        itemDiv.innerHTML = `
-            <div class="notification-content">
-                <div class="notification-message">${notif.message}</div>
-                <div class="notification-time">${formatNotificationTime(notif.created_at)}</div>
-            </div>
-        `;
-
-        itemDiv.addEventListener('click', () => handleNotificationClick(notif, itemDiv));
-        notificationList.appendChild(itemDiv);
-    });
-
-    // Show footer if there are many notifications
-    if (notifications.length >= 5) {
-        notificationFooter.style.display = 'block';
-    }
-}
 
 // Handle notification click with professional UX
 async function handleNotificationClick(notif, itemElement) {
@@ -1694,47 +1771,6 @@ async function markAllNotificationsAsRead() {
     } catch (error) {
         console.error('Failed to mark all notifications as read:', error);
         showToast('Failed to mark notifications as read', 'error');
-    }
-}
-
-// Professional UI state management
-function showNotificationLoading() {
-    notificationLoading.style.display = 'block';
-    noNotifications.style.display = 'none';
-    notificationList.innerHTML = '';
-}
-
-function hideNotificationLoading() {
-    notificationLoading.style.display = 'none';
-}
-
-function showNoNotifications() {
-    noNotifications.style.display = 'block';
-    notificationFooter.style.display = 'none';
-}
-
-function hideNoNotifications() {
-    noNotifications.style.display = 'none';
-}
-
-function showNotificationError(message) {
-    notificationList.innerHTML = `
-        <div class="notification-error" style="padding: 20px; text-align: center;">
-            <i data-lucide="wifi-off" class="w-8 h-8 mx-auto mb-2 text-red-400"></i>
-            <div class="text-sm font-medium text-red-600 mb-1">Connection Error</div>
-            <div class="text-xs text-red-500">${message}</div>
-            <button onclick="fetchNotifications(true)" class="mt-2 text-xs text-blue-600 hover:text-blue-800">
-                Try again
-            </button>
-        </div>
-    `;
-    lucide.createIcons();
-}
-
-function hideNotificationError() {
-    const errorElement = notificationList.querySelector('.notification-error');
-    if (errorElement) {
-        errorElement.remove();
     }
 }
 
@@ -1855,20 +1891,6 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('beforeunload', () => {
     stopNotificationPolling();
 });
-
-// Function to send notification to admins when user performs actions
-async function sendAdminNotification(action, data) {
-    try {
-        await fetch('/users/send-admin-notification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, data })
-        });
-        console.log('Admin notification sent for action:', action);
-    } catch (err) {
-        console.error('Failed to send notification to admins:', err);
-    }
-}
 
 // Helper function to show notification badge immediately when user gets new notifications
 function showNewNotificationBadge() {
@@ -2008,11 +2030,13 @@ messagesLink.addEventListener('click', (e) => {
 
 
             // Quick Actions Button Event Listeners (NEW)
-            if (markAttendanceBtn) {
-            markAttendanceBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showMessage('Attendance marking functionality coming soon!', false, messageContainer, messageText);
-             });
+            if (uploadProjectBtn) {
+                uploadProjectBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showPanel('uploadProjectContainer'); // Directs to the Upload Project form
+                    fetchSessionUserData();
+                    showMessage('Mark attendance functionality coming soon!', false, messageContainer, messageText);
+                });
             }
 
             if (submitReportBtn){
@@ -2186,107 +2210,6 @@ function updateFormForSubmissionDeadline() {
 // Call the function on page load
 updateFormForSubmissionDeadline();
 
-/*
-function renderUserPageHeader(crumbs = []) {
-    const pageHeader = document.getElementById('pageHeader');
-
-    if (!crumbs.length) {
-        pageHeader.classList.add('hidden');
-        pageHeader.innerHTML = '';
-        return;
-    }
-
-   
-pageHeader.innerHTML = `
-  <div class="max-w-6xl mx-auto px-6 py-4">
-      <div class="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <h2 class="text-2xl font-bold text-gray-800 mb-2">${crumbs[crumbs.length - 1]}</h2>
-          <nav class="flex items-center text-lg text-gray-600 space-x-2">
-            ${crumbs.map((crumb, i) => {
-              if (i < crumbs.length - 1) {
-                return `
-                  <a href="#" class="hover:text-blue-600 font-medium breadcrumb-link" data-crumb="${crumb}">
-                    ${crumb}
-                  </a>
-                  <span class="text-gray-400">›</span>
-                `;
-              } else {
-                return `<span class="text-gray-800 font-semibold">${crumb}</span>`;
-              }
-            }).join('')}
-          </nav>
-      </div>
-    </div>
-  `;
-
-    pageHeader.classList.remove('hidden');
-
-    // --- Map breadcrumb routes to showPanel IDs ---
-    const breadcrumbRoutes = {
-        'Dashboard': () => showPanel('dashboardContent'),
-        'Logbook Report': () => showPanel('logbookReportContainer'),
-        'Complaint & Suggestion': () => showPanel('complaintSuggestionContainer'),
-        'Upload Project': () => showPanel('uploadProjectContainer'),
-        'Edit Details': () => showPanel('editDetailsContainer'),
-        'Request Permission': () => showPanel('requestPermissionContainer'),
-        'Settings': () => showPanel('settingsContainer') // add if you have one
-    };
-
-    // Hook up breadcrumb clicks
-    pageHeader.querySelectorAll('.breadcrumb-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const target = e.target.dataset.crumb;
-            if (breadcrumbRoutes[target]) {
-                breadcrumbRoutes[target]();
-                setUserBreadcrumb(target); // update breadcrumb when navigating back
-            }
-        });
-    });
-}
-
-function setUserBreadcrumb(section) {
-    switch (section) {
-        case 'Dashboard':
-            const pageHeader = document.getElementById('pageHeader');
-            pageHeader.classList.add('hidden');
-            pageHeader.innerHTML = '';
-            break;
-
-        case 'Logbook Report':
-            renderUserPageHeader(['Dashboard', 'Logbook Report']);
-            break;
-
-        case 'Complaint & Suggestion':
-            renderUserPageHeader(['Dashboard', 'Complaint & Suggestion']);
-            break;
-
-        case 'Upload Project':
-            renderUserPageHeader(['Dashboard', 'Upload Project']);
-            break;
-
-        case 'Edit Details':
-            renderUserPageHeader(['Dashboard', 'Edit Details']);
-            break;
-
-        case 'Request Permission':
-            renderUserPageHeader(['Dashboard', 'Request Permission']);
-            break;
-
-        case 'Settings':
-            renderUserPageHeader(['Dashboard', 'Settings']);
-            break;
-
-        case 'Messages':
-           renderUserPageHeader(['Dashboard', 'Messages']);
-            break;
-
-        default:
-            renderUserPageHeader(['Dashboard', section]);
-            break;
-    }
-}
-**/
 
 //Function to Fetch & Render Messages
 async function renderUserMessage(messageId) {
@@ -2307,7 +2230,7 @@ async function renderUserMessage(messageId) {
 
         // show messages panel + update breadcrumb
         showPanel('messagesContainer');
-        setUserBreadcrumb('Messages');
+       // setUserBreadcrumb('Messages');
     } catch (err) {
         console.error('Error loading message:', err);
         document.getElementById('messageContent').innerHTML =
@@ -2555,23 +2478,6 @@ complaintSuggestionForm.addEventListener('submit', async (e) => {
             participantsContainer.innerHTML = '';
             // Reset participantCount to 0 for a clean form
             participantCount = 0; 
-            
-            try {
-                await fetch('/users/send-admin-notification', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'complaint_submitted',
-                        data: { 
-                            subject: subject || 'No Subject',
-                            userId: sessionUserData.user_id,
-                            userName: `${sessionUserData.first_name} ${sessionUserData.last_name}`
-                        }
-                    })
-                });
-            } catch (notificationError) {
-                console.warn('Failed to send notification to admin:', notificationError);
-            }
         } else {
             showMessage(result.message || 'Failed to submit complaint/suggestion. Please try again.', true, complaintMessageContainer, complaintMessageText);
         }
@@ -2589,23 +2495,37 @@ complaintSuggestionForm.addEventListener('submit', async (e) => {
            
             // --- Edit Details Functionality ---
 
+
+            const passwordModal = document.getElementById('passwordModal');
+            const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+            const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+            const submitPasswordBtn = document.getElementById('submitPasswordBtn');
+
             // Function to show messages specifically for the Edit Details section
             const showEditDetailsMessage = (msg, isError = false) => {
-                const container = document.getElementById('editDetailsMessageContainer') || messageContainer;
-                const text = document.getElementById('editDetailsMessageText') || messageText;
+            const container = document.getElementById('editDetailsMessageContainer');
+            const text = document.getElementById('editDetailsMessageText');
 
-                if (text && container) {
-                    text.textContent = msg;
-                    container.classList.remove('hidden');
-                    if (isError) {
-                        container.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
-                        container.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-                    } else {
-                        container.classList.remove('bg-red-100', 'border-red-400', 'text-red-700');
-                        container.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
-                    }
-                }
+            if (text && container) {
+                text.textContent = msg;
+                container.classList.remove('hidden');
+
+            if (isError) {
+                 container.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
+                container.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+            } else {
+                 container.classList.remove('bg-red-100', 'border-red-400', 'text-red-700');
+                container.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+
+                // Auto-hide success after 4 s
+                setTimeout(() => {
+                container.classList.add('hidden');
+                text.textContent = '';
+                    }, 4000);
+                     }
+                 }
             };
+
 
             const clearEditDetailsMessage = () => {
                 const container = document.getElementById('editDetailsMessageContainer') || messageContainer;
@@ -2676,60 +2596,66 @@ complaintSuggestionForm.addEventListener('submit', async (e) => {
             });
 
             // Save Email Changes
-            saveEmailBtn.addEventListener('click', async () => {
-                clearEditDetailsMessage();
+            saveEmailBtn.addEventListener('click', () => {
+    clearEditDetailsMessage();
 
-                if (!sessionUserData || !sessionUserData.user_id) {
-                    showEditDetailsMessage('User data not found. Please log in.', true);
-                    return;
-                }
+    if (!sessionUserData?.user_id) {
+        showEditDetailsMessage('User data not found. Please log in.', true);
+        return;
+    }
 
-                const newEmail = editEmailInput.value.trim();
-                
-                if (!newEmail || !newEmail.includes('@') || !newEmail.includes('.')) {
-                    showEditDetailsMessage('Please enter a valid email address.', true);
-                    return;
-                }
+    const newEmail = editEmailInput.value.trim();
+    if (!newEmail || !newEmail.includes('@') || !newEmail.includes('.')) {
+        showEditDetailsMessage('Please enter a valid email address.', true);
+        return;
+    }
 
-                // For a real app, you'd prompt for current password here
-                const currentPassword = prompt('Please enter your current password to confirm email change:');
-                if (!currentPassword) {
-                    showEditDetailsMessage('Email change cancelled. Current password is required.', true);
-                    return;
-                }
+    // show password modal instead of prompt
+    confirmPasswordInput.value = '';
+    passwordModal.classList.remove('hidden');
+});
 
+/* ---------- Modal Buttons ---------- */
+cancelPasswordBtn.addEventListener('click', () => {
+    passwordModal.classList.add('hidden');
+});
 
-                try {
-                    const response = await fetch('/users/update-email', { 
-                        method: 'PUT', 
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            user_id: sessionUserData.user_id,
-                            new_email: newEmail,
-                            current_password: currentPassword, 
-                        }),
-                    });
+submitPasswordBtn.addEventListener('click', async () => {
+    const currentPassword = confirmPasswordInput.value.trim();
+    if (!currentPassword) {
+        showEditDetailsMessage('Current password is required.', true);
+        return;
+    }
+    passwordModal.classList.add('hidden');
 
-                    const result = await response.json();
+    try {
+        const res = await fetch('/users/update-email', {
+            method : 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({
+                user_id        : sessionUserData.user_id,
+                new_email      : editEmailInput.value.trim(),
+                current_password: currentPassword
+            }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showEditDetailsMessage(data.message || 'Email updated successfully!', false);
+            sessionUserData.email = editEmailInput.value.trim();
+            editEmailInput.readOnly = true;
+            editEmailInput.classList.add('bg-gray-100');
+            editEmailInput.classList.remove('bg-white');
+            saveEmailBtn.classList.add('hidden');
+            changeEmailBtn.textContent = 'Change email';
+        } else {
+            showEditDetailsMessage(data.message || 'Failed to update email.', true);
+        }
+    } catch (err) {
+        console.error('Error updating email:', err);
+        showEditDetailsMessage(`An error occurred: ${err.message}`, true);
+    }
+});
 
-                    if (response.ok) {
-                        showEditDetailsMessage(result.message || 'Email updated successfully!', false);
-                        sessionUserData.email = newEmail; 
-                        editEmailInput.readOnly = true;
-                        editEmailInput.classList.add('bg-gray-100');
-                        editEmailInput.classList.remove('bg-white');
-                        saveEmailBtn.classList.add('hidden');
-                        changeEmailBtn.textContent = 'Change email';
-                    } else {
-                        showEditDetailsMessage(result.message || 'Failed to update email. Please try again.', true);
-                    }
-                } catch (error) {
-                    console.error('Error updating email:', error);
-                    showEditDetailsMessage(`An error occurred: ${error.message}`, true);
-                }
-            });
 
             // Change Password functionality
             changePasswordBtn.addEventListener('click', () => {
@@ -2938,20 +2864,6 @@ complaintSuggestionForm.addEventListener('submit', async (e) => {
                         uploadProjectDescriptionInput.value = '';
                         projectFileInput.value = '';
                         fetchUploadedProjects();
-
-                        // In your project upload success block, add:
-try {
-    await fetch('/users/send-admin-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action: 'project_uploaded',
-            data: { projectName: uploadProjectNameInput.value.trim() }
-        })
-    });
-} catch (error) {
-    console.warn('Failed to send notification to admin:', error);
-}
                     } else {
                         const idx = uploadedFiles.findIndex(f => f.id === tempFileEntry.id);
                         if (idx !== -1) {
@@ -3185,20 +3097,6 @@ try {
                     if (response.ok) {
                         showMessage(result.message || 'Leave request submitted successfully!', false, permissionMessageContainer, permissionMessageText);
                         leaveRequestForm.reset(); // Clear the form on success
-
-                        // In your leave request form submission success block, add:
-try {
-    await fetch('/users/send-admin-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            action: 'leave_request_submitted',
-            data: { leaveType: leaveTypeInput.value }
-        })
-    });
-} catch (error) {
-    console.warn('Failed to send notification to admin:', error);
-}
                     } else {
                         showMessage(result.message || 'Failed to submit leave request. Please try again.', true, permissionMessageContainer, permissionMessageText);
                     }

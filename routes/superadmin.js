@@ -78,4 +78,74 @@ router.get('/list-admins', isSuperadmin, async (req, res) => {
 });
 
 
+// GET accounts (paginated)
+router.get('/accounts', isSuperadmin, async (req, res) => {
+    try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const offset = (page - 1) * limit;
+
+        const usersResult = await pool.query(
+            `SELECT user_id, first_name, last_name, email, is_disabled, disabled_at, created_at
+             FROM users
+             ORDER BY created_at DESC
+             LIMIT $1 OFFSET $2`,
+            [limit, offset]
+        );
+
+        const countResult = await pool.query(`SELECT COUNT(*)::int AS total FROM users`);
+        const total = parseInt(countResult.rows[0].total, 10) || 0;
+
+        res.json({
+            users: usersResult.rows,
+            total_pages: Math.max(1, Math.ceil(total / limit)),
+            current_page: page,
+            total_items: total
+        });
+    } catch (err) {
+        console.error('Error fetching accounts:', err);
+        res.status(500).json({ message: 'Error fetching accounts' });
+    }
+});
+
+// PUT disable/enable account
+router.put('/accounts/:id/:action', isSuperadmin, async (req, res) => {
+    const { id, action } = req.params;
+
+    try {
+        if (!['disable', 'enable'].includes(action)) {
+            return res.status(400).json({ message: 'Invalid action' });
+        }
+
+        if (action === 'disable') {
+            await pool.query(
+                `UPDATE users SET is_disabled = true, disabled_at = NOW() WHERE user_id = $1`,
+                [id]
+            );
+        } else {
+            // enable
+            await pool.query(
+                `UPDATE users SET is_disabled = false, disabled_at = NULL WHERE user_id = $1`,
+                [id]
+            );
+        }
+
+        // Return updated user summary
+        const updated = await pool.query(
+            `SELECT user_id, first_name, last_name, email, is_disabled, disabled_at FROM users WHERE user_id = $1`,
+            [id]
+        );
+
+        res.json({
+            message: `Account ${action}d successfully`,
+            user: updated.rows[0] || null
+        });
+    } catch (err) {
+        console.error('Error updating account:', err);
+        res.status(500).json({ message: 'Error updating account' });
+    }
+});
+
+
+
 export default router;

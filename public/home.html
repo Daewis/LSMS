@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/images/Lasued.png">
   <style>
     body{font-family:'Inter',sans-serif;}
     .nav-link.active::after{
@@ -19,7 +20,7 @@
 <body class="text-gray-800 antialiased">
 
 <!-- ===== NAVBAR ===== -->
-<header class="fixed w-full z-30 bg-white/70 backdrop-blur-md shadow-sm">
+<header class="w-full z-30 bg-white/70 backdrop-blur-md shadow-sm">
   <nav class="container mx-auto flex items-center justify-between px-4 py-4">
 <a href="#home" class="flex items-center">
   <img
@@ -87,8 +88,8 @@
     <div class="grid md:grid-cols-2 gap-8 mb-10">
       <div class="bg-white p-8 rounded-lg shadow">
         <h3 class="text-2xl font-semibold mb-4">Email Us</h3>
-        <p class="text-gray-700">support@lasuedsiwesms.com</p>
-        <p class="text-gray-700">info@lasuedsiwesms.com</p>
+        <p class="text-gray-700">lasuedsms@gmail.com</p>
+        <p class="text-gray-700">info@lasuedsms.com</p>
       </div>
       <div class="bg-white p-8 rounded-lg shadow">
         <h3 class="text-2xl font-semibold mb-4">Call Us</h3>
@@ -96,12 +97,16 @@
         <p class="text-gray-700">Mon-Fri, 9 AM – 5 PM (GMT)</p>
       </div>
     </div>
-    <form class="bg-white p-8 rounded-lg shadow space-y-4">
-      <input type="text" placeholder="Your Name" class="w-full px-4 py-3 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-      <input type="email" placeholder="Your Email" class="w-full px-4 py-3 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-      <textarea rows="5" placeholder="Your Message" class="w-full px-4 py-3 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+    <form id="contactForm" class="bg-white p-8 rounded-lg shadow space-y-4">
+      <input name="name" type="text" placeholder="Your Name" required class="w-full px-4 py-3 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+      <input name="email" type="email" placeholder="Your Email" required class="w-full px-4 py-3 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+      <textarea name="message" rows="5" placeholder="Your Message" required class="w-full px-4 py-3 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"></textarea>
       <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-md font-semibold hover:bg-indigo-700">Send Message</button>
     </form>
+    <!-- Contact success/error message -->
+<div id="contactMessage"
+     class="hidden mt-4 p-3 rounded border text-sm transition-all duration-300">
+</div>
   </div>
 </section>
 
@@ -147,8 +152,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const navLinks = document.querySelectorAll('.nav-link');
-  const sections = document.querySelectorAll('section[id]');
+  const navLinks     = document.querySelectorAll('.nav-link');
+  const sections     = document.querySelectorAll('section[id]');
   const headerHeight = document.querySelector('header').offsetHeight;
 
   function setActive(id){
@@ -173,7 +178,53 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   setActive('home');
+
+  const contactForm   = document.getElementById('contactForm');
+  const contactMsgBox = document.getElementById('contactMessage');
+
+  if (contactForm && contactMsgBox) {
+    contactForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = {
+        name:    contactForm.name.value,
+        email:   contactForm.email.value,
+        message: contactForm.message.value
+      };
+
+      contactMsgBox.classList.add('hidden');
+
+      try {
+        const res  = await fetch('/mail/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          credentials: 'include' 
+        });
+        const result = await res.json();
+
+        contactMsgBox.classList.remove('hidden');
+        if (result.success) {
+          contactMsgBox.textContent = "Message sent successfully!";
+          contactMsgBox.className = "mt-4 p-3 rounded border bg-green-100 border-green-400 text-green-700";
+          contactForm.reset();
+           setTimeout(() => {
+           contactMsgBox.classList.add('hidden');     // hide box
+           contactMsgBox.textContent = '';            // clear text (optional)
+        }, 3000);
+        } else {
+          contactMsgBox.textContent = result.msg || "Failed to send message.";
+          contactMsgBox.className = "mt-4 p-3 rounded border bg-red-100 border-red-400 text-red-700";
+        }
+      } catch (err) {
+        contactMsgBox.classList.remove('hidden');
+        contactMsgBox.textContent = "Network or server error.";
+        contactMsgBox.className = "mt-4 p-3 rounded border bg-red-100 border-red-400 text-red-700";
+        console.error(err);
+      }
+    });
+  }
 });
 </script>
+
 </body>
 </html>

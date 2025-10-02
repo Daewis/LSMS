@@ -653,6 +653,35 @@ router.post('/send-notification', isAuthenticated, isAdminOrSuperadmin, upload.s
     }
 });
 
+router.put('/notifications/mark-all-read', isAuthenticated, isAdminOrSuperadmin, async (req, res) => {
+  const adminId = req.session.user?.user_id;
+
+  if (!adminId) {
+    return res.status(400).json({ message: 'Admin ID not found in session.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE notifications
+       SET is_read = true
+       WHERE recipient_id = $1
+         AND recipient_role = 'admin'
+         AND is_read = false
+       RETURNING notification_id`,
+      [adminId]
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'All admin notifications marked as read successfully.',
+      updatedCount: result.rowCount 
+    });
+  } catch (error) {
+    console.error('Error marking admin notifications as read:', error);
+    res.status(500).json({ message: 'Failed to mark admin notifications as read.' });
+  }
+});
+
 
 // --- Paginated route for complaints (with review info) ---
 router.get('/complaints', isAuthenticated, isAdminOrSuperadmin, async (req, res) => {
@@ -936,7 +965,7 @@ router.post(
   isAdminOrSuperadmin,
   async (req, res) => {
     const { permissionId, status, rejectionReason } = req.body;
-    const reviewerId = req.session.user?.user_id;
+    const adminId = req.session.user?.user_id;
     const reviewedAt = new Date().toISOString();
 
     if (!permissionId || !status) {
@@ -953,11 +982,11 @@ router.post(
       // 1. Update leave request
       const queryText = `
         UPDATE leave_requests
-        SET status = $1, reviewed_at = $2, rejection_reason = $3
-        WHERE permission_id = $4
+        SET status = $1, reviewed_at = $2, rejection_reason = $3, reviewed_by = $4
+        WHERE permission_id = $5
         RETURNING *;
       `;
-      const values = [status, reviewedAt, rejectionReason || null, permissionId];
+      const values = [status, reviewedAt, rejectionReason || null, adminId, permissionId];
       const result = await client.query(queryText, values);
 
       if (result.rowCount === 0) {
@@ -967,8 +996,7 @@ router.post(
       }
 
       const leaveRequest = result.rows[0];
-
-      // 2. Send notification to the intern
+    
       const userId = leaveRequest.user_id;
       let notificationMessage;
 
@@ -1611,7 +1639,6 @@ function getTimeAgo(timestamp) {
     if (diffInDays < 7) return `${diffInDays}d ago`;
     return activityTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-
 
 
 export default router;

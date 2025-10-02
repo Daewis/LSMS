@@ -1,5 +1,5 @@
 import express from 'express';
-import pool from '../db.js'; // Ensure db.js exports pool using ES Module syntax (e.g., export default pool;)
+import pool from '../db.js'; 
 import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
 import { v4 as uuidv4 } from 'uuid'; // Importing uuid for unique ID generation
@@ -7,9 +7,7 @@ import 'dotenv/config';
 
 const router = express.Router();
 
-// --- Nodemailer Transporter Setup (for real email sending) ---
-// IMPORTANT: Use environment variables for sensitive data like email user and password.
-// For Gmail or Google Workspace accounts with 2FA enabled, use an App Password.
+
 const transporter = nodemailer.createTransport({
     secure: true,
     host: 'smtp.gmail.com',
@@ -21,18 +19,6 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-/*
-function sendMail(to,sub,msg){
-    transporter.sendMail({
-        to: to,
-        subject: sub,
-        html: msg
-    })
-    console.log('Email sent');
-};
-
-sendMail("davidabokunwa@gmail.com", "This is subject", "This is message")
-**/
 
 // Helper function to send email
 async function sendPasswordResetEmail(email, resetLink) {
@@ -93,8 +79,8 @@ router.post('/forgot-password', async (req, res) => {
         await client.query(insertTokenQuery, [userId, token, expiresAt]);
 
         // 4. Construct the password reset link
-        // In a real app, replace 'http://localhost:4000' with your frontend domain and port
-       const resetLink = `http://localhost:4000/forgot_password.html?token=${token}`; 
+        
+       const resetLink = `http://lisms.vercel.app/forgot_password.html?token=${token}`; 
 
         // 5. Send the password reset email
         await sendPasswordResetEmail(email, resetLink);

@@ -1,6 +1,4 @@
 import express from 'express';
-import pool from '../db.js'; // Ensure db.js exports pool using ES Module syntax (e.g., export default pool;)
-import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 

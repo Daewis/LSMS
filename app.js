@@ -22,37 +22,33 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ===== CRITICAL FIXES FOR VERCEL =====
 
-// Updated CORS configuration for single-domain deployment
+
 const allowedOrigins = [
-    'http://localhost:3000',
     'http://localhost:4000',
     'https://lisms.vercel.app',
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
     process.env.FRONTEND_URL
 ].filter((origin, index, array) => 
-    origin && array.indexOf(origin) === index // Remove duplicates and nulls
+    origin && array.indexOf(origin) === index 
 );
 
 app.use(cors({
     origin: function (origin, callback) {
-        console.log('CORS Check - Origin:', origin);
-        console.log('Allowed Origins:', allowedOrigins);
+        //console.log('CORS Check - Origin:', origin);
+       // console.log('Allowed Origins:', allowedOrigins);
         
-        // Allow requests with no origin (same-origin requests)
         if (!origin) {
-            console.log('No origin - allowing same-origin request');
+          //  console.log('No origin - allowing same-origin request');
             return callback(null, true);
         }
         
         if (allowedOrigins.indexOf(origin) !== -1) {
-            console.log('Origin allowed:', origin);
+            //console.log('Origin allowed:', origin);
             callback(null, true);
         } else {
-            console.warn('CORS blocked origin:', origin);
-            // In production with single domain, this shouldn't happen often
-            callback(null, true); // Allow for now, change to false if needed
+            //console.warn('CORS blocked origin:', origin);
+        callback(null, true); 
         }
     },
     credentials: true,
@@ -61,26 +57,7 @@ app.use(cors({
     exposedHeaders: ['Set-Cookie']
 }));
 
-/*
-// Debug session store operations
-app.use((req, res, next) => {
-    if (req.session) {
-        const originalSave = req.session.save;
-        req.session.save = function(callback) {
-            console.log('[SESSION SAVE] Attempting to save session:', this);
-            return originalSave.call(this, (err) => {
-                if (err) {
-                    console.error('[SESSION SAVE ERROR]', err);
-                } else {
-                    console.log('[SESSION SAVE SUCCESS] Session saved to database');
-                }
-                if (callback) callback(err);
-            });
-        };
-    }
-    next();
-});
-**/
+
 
 // 3. Body parser middleware
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -115,7 +92,7 @@ app.use(session({
 }));
 
 app.use((req, res, next) => {
-    if (process.env.NODE_ENV !== 'development') { // Fix the condition
+    if (process.env.NODE_ENV !== 'development') { 
         console.log('Session Debug:', {
             sessionID: req.sessionID,
             hasSession: !!req.session,
@@ -127,8 +104,8 @@ app.use((req, res, next) => {
     }
     next();
 });
-// ===== AUTHENTICATION MIDDLEWARE =====
 
+// ===== AUTHENTICATION MIDDLEWARE =====
 
 
 // Enhanced authentication middleware

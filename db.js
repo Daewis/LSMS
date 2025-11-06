@@ -1,4 +1,3 @@
-// db.js
 import pg from 'pg';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -7,11 +6,10 @@ const { Pool } = pg;
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }, // required for Render Postgres
+    ssl: { rejectUnauthorized: false }, 
 });
 
-// Optional: Test the connection on file load.
-// This is good for debugging but won't block the app from starting.
+//Testing Connection
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Database connection error:', err);
@@ -20,5 +18,8 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// CORRECTED EXPORT: Export the 'pool' variable directly as the default.
-export default pool; // <--- THIS IS THE ONLY CHANGE NEEDED HERE
+
+export default pool; 
+
+
+

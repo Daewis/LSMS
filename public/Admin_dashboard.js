@@ -1,0 +1,3426 @@
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+    
+        // DOM elements
+        const mainContentArea = document.getElementById('main-content-area');
+        const registerAdminLink = document.getElementById('registerAdminLink');
+        const loggedInUserNameSpan = document.getElementById('loggedInUserName');
+        const signOutLink = document.getElementById('signOutLink');
+        const viewInternsLink = document.getElementById('viewInternsLink');
+        const editDetailsLink = document.getElementById('editDetailsLink');
+        const viewLogbookLink = document.getElementById('viewLogbookLink');
+        const viewComplaintsLink = document.getElementById('viewComplaintsLink');
+        const accountsManagementLink = document.getElementById('accountsManagementLink');
+        const viewPermissionLink = document.getElementById('viewPermissionLink');
+        const customModal = document.getElementById('customModal');
+
+        // Reason modal references
+        const reasonModal = document.getElementById('reason-modal');
+        const rejectionReasonInput = document.getElementById('rejection-reason');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const submitBtn = document.getElementById('submit-btn');
+
+        // Global variables
+        let modalRedirectTarget = null;
+        let currentPermissionId = null;
+
+     
+
+// Fixed showModal function with proper vertical scrolling
+ function showModal(title, message, onOk = null, onCancel = null, useDefaultButtons = true) {
+      const modal = document.getElementById('customModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalMessage = document.getElementById('modalMessage');
+      const modalFooter = document.getElementById('modalFooter');
+
+      modalTitle.textContent = title;
+      modalMessage.innerHTML = message;
+      modalFooter.innerHTML = '';
+
+      if (useDefaultButtons) {
+        const okBtn = document.createElement('button');
+        okBtn.textContent = 'OK';
+        okBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md';
+        okBtn.onclick = async () => { if (onOk) await onOk(); closeModal(); };
+        modalFooter.appendChild(okBtn);
+
+        if (onCancel) {
+          const cancelBtn = document.createElement('button');
+          cancelBtn.textContent = 'Cancel';
+          cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md';
+          cancelBtn.onclick = () => { onCancel(); closeModal(); };
+          modalFooter.appendChild(cancelBtn);
+        }
+      }
+      modal.classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('customModal').classList.remove('active');
+    }
+
+    document.getElementById('closeModalBtn').onclick = closeModal;
+    window.onclick = (e) => {
+      const modal = document.getElementById('customModal');
+      if (e.target === modal) closeModal();
+    };
+
+   
+// Updated showSpinner function (keeping your existing one)
+function showSpinner() {
+    const existingSpinner = document.getElementById('loadingSpinnerOverlay');
+    if (existingSpinner) {
+        return; // Don't create multiple spinners
+    }
+
+    const spinnerOverlay = document.createElement('div');
+    spinnerOverlay.id = 'loadingSpinnerOverlay';
+    spinnerOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
+
+    spinnerOverlay.innerHTML = `
+        <div class="p-4 rounded-lg flex flex-col items-center">
+           <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600 mb-4"></div>
+        </div>
+    `;
+
+    document.body.appendChild(spinnerOverlay);
+}
+
+function hideSpinner() {
+    const spinner = document.getElementById('loadingSpinnerOverlay');
+    if (spinner) {
+        spinner.remove();
+    }
+}
+// Add this CSS to your existing styles
+const styles = `
+    #loadingSpinnerOverlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+    }
+
+    .spinner {
+        position: relative;
+    }
+
+    .spinner > div {
+        position: absolute;
+        top: 0;
+        left: 0;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+
+// Add the styles to the document
+const styleSheet = document.createElement("style");
+styleSheet.textContent = styles;
+document.head.appendChild(styleSheet);
+
+
+
+
+// Updated authenticatedFetch function - now much simpler
+async function authenticatedFetch(endpoint, options = {}) {
+    // Use relative URLs since frontend and backend are on same domain
+    const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    
+    const defaultOptions = {
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    };
+    
+    console.log('Making request to:', url);
+    
+    try {
+        const response = await fetch(url, { ...defaultOptions, ...options });
+        
+        // Auto-redirect on auth failure
+        if (response.status === 401 || response.status === 403) {
+            sessionStorage.removeItem('currentUser');
+            window.location.href = '/Sign_in.html';
+            return null;
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+    }
+}
+
+// Enhanced session validation
+async function validateSession() {
+    try {
+        const response = await authenticatedFetch('/auth/validate-session');
+        if (response && response.ok) {
+            const userData = await response.json();
+            sessionStorage.setItem('currentUser', JSON.stringify(userData));
+            return userData;
+        } else {
+            sessionStorage.removeItem('currentUser');
+            throw new Error('Session invalid');
+        }
+    } catch (error) {
+        sessionStorage.removeItem('currentUser');
+        throw error;
+    }
+}
+
+
+/**
+ * Fetches intern data with pagination and renders the intern list view.
+ * Uses a lightweight skeleton loader for faster perceived performance.
+ * @param {number} page - Page number to fetch.
+ * @param {number} limit - Items per page.
+ */
+async function loadInternsList(page = 1, limit = 5) {
+  setBreadcrumb('Interns');
+
+  // === Immediate skeleton UI (no spinner pop-in) ===
+  mainContentArea.innerHTML = `
+    <div class="min-h-full bg-gray-100 px-6 py-4">
+      <div class="max-w-7xl mx-auto">
+        <!-- breadcrumb is already inserted by setBreadcrumb -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mt-6">
+          <h1 class="text-3xl font-bold mb-6 text-gray-800">Intern List</h1>
+
+          <!-- Table skeleton -->
+          <div id="interns-skeleton" class="space-y-4 animate-pulse">
+            ${Array.from({length: 5}).map(() => `
+              <div class="h-6 bg-gray-200 rounded"></div>
+            `).join('')}
+          </div>
+
+          <!-- Real table will replace skeleton -->
+          <div id="interns-table-wrapper" class="hidden overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">First Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Middle Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matric No.</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Institution</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Image</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acceptance Letter</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="internsTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+          </div>
+
+          <div id="pagination-controls" class="flex justify-center mt-4 space-x-2"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const tableWrapper = document.getElementById('interns-table-wrapper');
+  const internsTableBody = document.getElementById('internsTableBody');
+  const paginationControls = document.getElementById('pagination-controls');
+
+  try {
+    const response = await authenticatedFetch(`/api/admin/view-interns?page=${page}&limit=${limit}`, {
+      method: 'GET'
+    });
+
+    if (!response) return; // auth redirect already handled
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Hide skeleton, show table
+    document.getElementById('interns-skeleton').remove();
+    tableWrapper.classList.remove('hidden');
+
+    if (!data.interns.length) {
+      internsTableBody.innerHTML =
+        `<tr><td colspan="11" class="text-center text-gray-500 p-8">No interns found.</td></tr>`;
+      paginationControls.innerHTML = '';
+      return;
+    }
+
+    internsTableBody.innerHTML = data.interns.map(intern => `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-4 text-sm font-medium text-gray-900">${intern.user_id}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.first_name || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.middle_name || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.last_name || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.matric_number || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.institution || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.phone_number || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">${intern.email || 'N/A'}</td>
+        <td class="px-4 py-4 text-sm text-gray-800">
+          ${intern.user_image_url
+            ? `<img src="${intern.user_image_url}" alt="User Image" class="h-10 w-10 rounded-full object-cover">`
+            : `<span class="text-gray-400">No Image</span>`}
+        </td>
+        <td class="px-4 py-4 text-sm text-gray-800">
+          ${intern.acceptance_letter_url
+            ? `<a href="${intern.acceptance_letter_url}" target="_blank" class="text-blue-600 hover:underline">View Letter</a>`
+            : `<span class="text-gray-400">No Letter</span>`}
+        </td>
+        <td class="px-4 py-4 text-right text-sm font-medium">
+          <button class="text-indigo-600 hover:text-indigo-900 edit-intern-button" data-intern-id="${intern.user_id}">Edit</button>
+        </td>
+      </tr>
+    `).join('');
+
+    renderPagination(paginationControls, data.current_page, data.total_pages, limit, loadInternsList);
+
+    document.querySelectorAll('.edit-intern-button').forEach(btn => {
+      btn.addEventListener('click', e => fetchAndRenderInternDetails(e.currentTarget.dataset.internId));
+    });
+
+  } catch (err) {
+    console.error('Failed to fetch interns:', err);
+    mainContentArea.innerHTML =
+      `<p class="text-red-500 text-center text-lg">Error: ${err.message}</p>`;
+  }
+}
+
+function renderPageHeader(crumbs = []) {
+    const pageHeader = document.getElementById('pageHeader');
+
+    if (!crumbs.length) {
+        pageHeader.classList.add('hidden');
+        return;
+    }
+
+    pageHeader.innerHTML = `
+    <div class="max-w-6xl mx-auto px-6 bg-white rounded-lg shadow-md border border-gray-200 py-4 mb-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-3">${crumbs[crumbs.length - 1]}</h2>
+      <nav class="flex items-center text-lg text-gray-600 space-x-2">
+        ${crumbs.map((crumb, i) => {
+          if (i < crumbs.length - 1) {
+            return `
+              <a href="#" class="hover:text-blue-600 font-medium breadcrumb-link" data-crumb="${crumb}">
+                ${crumb}
+              </a>
+              <span class="text-gray-400">›</span>
+            `;
+          } else {
+            return `<span class="text-gray-800 font-semibold">${crumb}</span>`;
+          }
+        }).join('')}
+      </nav>
+    </div>
+  `;
+
+  pageHeader.classList.remove('hidden');
+
+
+        const breadcrumbRoutes = {
+    'Dashboard': () => renderDashboard(),
+    'Interns': () => loadInternsList(1),
+    'Permissions': () => renderPermissions(),
+    'Complaints': () => renderComplaintsAndSuggestionsView(),
+    'Pending Users': () => renderPendingUsers(),
+    'Projects': () => renderProjectsView(),
+    'Messages': () => renderMessagesView(),
+    'Logbook Reports': () => renderLogbookViewSection(),
+    'Accounts': () =>  accountsManagementLink(),
+    'Register Admin': () => registerAdminLink(),
+    'Settings': () => renderSettingsView()
+};
+
+
+    // Hook up breadcrumb clicks
+   pageHeader.querySelectorAll('.breadcrumb-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = e.target.dataset.crumb;
+
+          if (breadcrumbRoutes[target]) {
+            breadcrumbRoutes[target]();
+        }
+
+    });
+});
+
+}
+
+function setBreadcrumb(section, subSection = null) {
+    switch (section) {
+        case 'Dashboard':
+            const pageHeader = document.getElementById('pageHeader');
+            pageHeader.classList.add('hidden');
+            pageHeader.innerHTML = '';
+            break;
+
+        case 'Interns':
+            if (!subSection) {
+                renderPageHeader(['Dashboard', 'Interns']);
+            } else if (subSection === 'Edit') {
+                renderPageHeader(['Dashboard', 'Interns', 'Edit Details']);
+            }
+            break;
+
+        case 'Permissions':
+            renderPageHeader(['Dashboard', 'Permission Requests']);
+            break;
+
+        case 'Complaints':
+            renderPageHeader(['Dashboard', 'Complaints & Suggestions']);
+            break;
+
+        case 'Projects':
+            renderPageHeader(['Dashboard', 'Projects']);
+            break;
+
+        case 'Messages':
+            renderPageHeader(['Dashboard', 'Messages']);
+            break;
+
+        case 'Accounts':
+            renderPageHeader(['Dashboard', 'Accounts']);
+            break;
+
+        case 'Register Admin':
+            renderPageHeader(['Dashboard', 'Register Admin']);
+            break;
+
+        case 'Settings':
+            renderPageHeader(['Dashboard', 'Settings']);
+            break;
+
+        default:
+            renderPageHeader(['Dashboard', section]);
+            break;
+    }
+}
+
+        // --- Render leave requests ---
+        async function renderPermissions(page = 1, limit = 5) {
+          setBreadcrumb('Permissions');
+
+
+    
+            mainContentArea.innerHTML = `
+  <div class="min-h-full bg-gray-100 px-6 py-4">
+    <div class="max-w-7xl mx-auto">
+      <!-- breadcrumb is already inserted by setBreadcrumb -->
+      <div class="bg-white rounded-xl shadow-lg p-8 mt-6">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Permission Requests</h1>
+        <div id="permissions-list-container" class="space-y-4">
+          <p id="loading-permissions" class="text-center text-gray-500 italic">
+            Loading permissions...
+          </p>
+        </div>
+        <div id="permissions-pagination-controls"
+             class="flex justify-center mt-4 space-x-2"></div>
+      </div>
+    </div>
+  </div>
+`;
+
+
+            const permissionsListContainer = document.getElementById('permissions-list-container');
+            const loadingPermissions = document.getElementById('loading-permissions');
+            const paginationControls = document.getElementById('permissions-pagination-controls');
+
+
+             try {
+        // Fetch paginated data from the updated backend route
+        const res = await authenticatedFetch(`/api/admin/leave-requests?page=${page}&limit=${limit}`, {
+           method: 'GET',
+           credentials: 'include',
+        });
+
+        if (!res) return; 
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.message || `HTTP error! status: ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        loadingPermissions.remove();
+
+        if (!data.success || !data.leaveRequests.length) {
+            permissionsListContainer.innerHTML = `
+                <p class="text-center text-gray-500 italic">No leave requests found.</p>
+            `;
+            paginationControls.innerHTML = '';
+            return;
+        }
+
+        // Clear existing content and render the new page's data
+        permissionsListContainer.innerHTML = '';
+        data.leaveRequests.forEach(permission => {
+            const isPending = permission.status.toLowerCase() === 'pending';
+            const name = permission.first_name && permission.last_name
+                ? `${permission.first_name} ${permission.last_name}`
+                : `User ${permission.user_id}`;
+
+            const card = document.createElement('div');
+            card.className = `p-4 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-center ${
+                isPending ? 'bg-white border' : 'bg-gray-100 border border-gray-300'
+            }`;
+
+            const downloadButton = permission.attachment_file_name ?
+                `<button onclick="downloadAttachment(${permission.permission_id})" class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 mt-1">
+                    Download: ${permission.attachment_file_name}
+                </button>` : '';
+
+            card.innerHTML = `
+                <div class="flex-grow">
+                    <p class="text-lg font-medium text-gray-900">${name}</p>
+                    <p class="text-sm text-gray-600">${permission.leave_type} leave from
+                        ${new Date(permission.start_date).toLocaleDateString()} to
+                        ${new Date(permission.end_date).toLocaleDateString()}
+                    </p>
+                    <p class="text-xs text-gray-500">Reason: ${permission.reason}</p>
+                    <p class="text-xs text-gray-400">Request ID: ${permission.permission_id} | Status: ${permission.status}</p>
+                    <p class="text-xs text-gray-400">Requested: ${new Date(permission.requested_at).toLocaleDateString()}</p>
+                    ${permission.reviewed_at ? `<p class="text-xs text-gray-400">Reviewed: ${new Date().toLocaleDateString()}</p>` : ''}
+                    ${permission.rejection_reason ? `<p class="text-xs text-red-500">Rejection Reason: ${permission.rejection_reason}</p>` : ''}
+                    ${downloadButton}
+                </div>
+                <div class="flex space-x-2 mt-2 sm:mt-0">
+                    <button
+                        data-id="${permission.permission_id}"
+                        class="approve-btn px-4 py-2 rounded-md transition-colors duration-200 ${isPending ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}"
+                        ${isPending ? '' : 'disabled'}>
+                        Approve
+                    </button>
+                    <button
+                        data-id="${permission.permission_id}"
+                        class="reject-btn px-4 py-2 rounded-md transition-colors duration-200 ${isPending ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}"
+                        ${isPending ? '' : 'disabled'}>
+                        Reject
+                    </button>
+                </div>
+            `;
+            permissionsListContainer.appendChild(card);
+        });
+
+        // Render the pagination controls
+        renderPagination(paginationControls, data.current_page, data.total_pages, limit, renderPermissions);
+
+
+        // Attach event listeners for the new page's content
+        attachEventListeners();
+        lucide.createIcons();
+
+    } catch (err) {
+        console.error('Error loading permissions:', err);
+        if (loadingPermissions) {
+            loadingPermissions.textContent = 'Failed to load requests.';
+        }
+    }
+}
+
+function renderPagination(container, currentPage, totalPages, limit, onPageChange) {
+    container.innerHTML = '';
+
+    if (currentPage > 1) {
+        const prevButton = document.createElement('button');
+        prevButton.textContent = 'Previous';
+        prevButton.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+        prevButton.addEventListener('click', () => onPageChange(currentPage - 1, limit));
+        container.appendChild(prevButton);
+    }
+
+    for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.className = `px-4 py-2 border rounded-md ${i === currentPage ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`;
+        pageButton.addEventListener('click', () => onPageChange(i, limit));
+        container.appendChild(pageButton);
+    }
+
+    if (currentPage < totalPages) {
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Next';
+        nextButton.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+        nextButton.addEventListener('click', () => onPageChange(currentPage + 1, limit));
+        container.appendChild(nextButton);
+    }
+}
+
+
+        // --- Event handling ---
+        function attachEventListeners() {
+            console.log('--- Button Debugging ---');
+            const allButtons = document.querySelectorAll('button');
+            console.log(`Total buttons found on the page: ${allButtons.length}`);
+
+            allButtons.forEach((btn, index) => {
+                console.log(`Button ${index + 1}:`);
+                console.log(`  - Text Content: "${btn.textContent.trim()}"`);
+                console.log(`  - Classes: "${btn.className}"`);
+                console.log(`  - data-id: "${btn.dataset.id || 'N/A'}"`);
+            });
+
+            console.log('--- Selector Debugging ---');
+            
+            // Approve buttons
+            const approveButtons = document.querySelectorAll('.approve-btn:not([disabled])');
+           // console.log(`Found ${approveButtons.length} buttons using '.approve-btn:not([disabled])'`);
+            
+            approveButtons.forEach((btn, index) => {
+                //console.log(`Attaching listener to approve button ${index}:`, btn.dataset.id);
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                   // console.log('Approve button clicked:', e.target.dataset.id);
+                    const permissionId = e.target.dataset.id;
+                    if (permissionId) {
+                        await updatePermission(permissionId, 'approved');
+                    } else {
+                        console.error('No permission ID found');
+                    }
+                });
+            });
+
+            // Reject buttons
+            const rejectButtons = document.querySelectorAll('.reject-btn:not([disabled])');
+            console.log(`Found ${rejectButtons.length} buttons using '.reject-btn:not([disabled])'`);
+            
+            rejectButtons.forEach((btn, index) => {
+                console.log(`Attaching listener to reject button ${index}:`, btn.dataset.id);
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Reject button clicked:', e.target.dataset.id);
+                    currentPermissionId = e.target.dataset.id;
+                    if (currentPermissionId) {
+                        rejectionReasonInput.value = '';
+                        reasonModal.classList.remove('hidden');
+                    } else {
+                        console.error('No permission ID found');
+                    }
+                });
+            });
+            console.log('--- End of Debugging ---');
+        }
+
+        // --- Download attachment function ---
+        async function downloadAttachment(permissionId) {
+            try {
+                const res = await fetch('/api/admin/download-attachment/${permissionId}', {
+                    method: 'GET'
+                });
+                if (!res.ok) throw new Error('Failed to download attachment');
+                
+                const blob = await res.blob();
+                const contentDisposition = res.headers.get('content-disposition');
+                const filename = contentDisposition 
+                    ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+                    : `attachment_${permissionId}`;
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Error downloading attachment:', err);
+                showModal('Error', 'Failed to download attachment');
+            }
+        }
+
+        // --- Update backend ---
+        async function updatePermission(id, status, rejectionReason = null) {
+            try {
+                const res = await fetch(`/api/admin/update-leave-request-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        permissionId: id, 
+                        status, 
+                        rejectionReason: status === 'rejected' ? rejectionReason : null 
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.message || `HTTP ${res.status}`);
+                }
+                
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to update');
+                }
+                
+                showModal('Success', data.message);
+                
+                // Reload the permissions after update
+                setTimeout(() => {
+                    closeModal();
+                    renderPermissions();
+                }, 1500);
+                
+            } catch (err) {
+                console.error('Error updating permission:', err);
+                showModal('Error', err.message || 'Failed to update permission');
+            }
+        }
+
+        // --- Reject modal logic ---
+        submitBtn.addEventListener('click', async () => {
+            const reason = rejectionReasonInput.value.trim();
+            if (!reason) {
+                // Using a custom modal instead of alert
+                showModal('Input Required', 'Please enter a rejection reason.');
+                return;
+            }
+            reasonModal.classList.add('hidden');
+            await updatePermission(currentPermissionId, 'rejected', reason);
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            reasonModal.classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        reasonModal.addEventListener('click', (e) => {
+            if (e.target === reasonModal) {
+                reasonModal.classList.add('hidden');
+            }
+        });
+
+        // --- Sidebar navigation ---
+        viewPermissionLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            renderPermissions();
+        });
+
+        // Dashboard Link
+            dashboardLink.addEventListener('click', (e) => {
+                e.preventDefault();
+               pageHeader.classList.add('hidden');
+                renderDashboard();
+            });
+
+
+        // Initialize icons after page load
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+
+        const headerSkeleton = document.getElementById("headerSkeleton");
+  const headerContent = document.getElementById("headerContent");
+
+  
+  setTimeout(() => {
+    headerSkeleton.classList.add("hidden");
+    headerContent.classList.remove("hidden");
+    headerContent.classList.add("opacity-0");
+
+    // Fade in effect
+    setTimeout(() => {
+      headerContent.classList.remove("opacity-0");
+      headerContent.classList.add("opacity-100", "transition-opacity", "duration-500");
+    }, 50);
+  }, 2500); 
+
+
+          // --- Dashboard View Function ---
+        async function renderDashboard() {
+        const mainContentArea = document.getElementById('main-content-area');
+        const skeleton = document.getElementById("adminDashboardSkeleton");
+        const dashboardContent = document.getElementById("adminDashboardContent");
+
+        skeleton.classList.remove("hidden");
+        dashboardContent.classList.add("hidden");
+
+
+             // Hide breadcrumb on Dashboard
+   setBreadcrumb('Dashboard');
+            const dashboardHtml = `
+                <div class="space-y-8">
+                    <!-- Header Section -->
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">Hello, Admin!</h1>
+                            <p class="text-gray-500 mt-1">Here is a quick overview of your dashboard.</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <span id="current-date" class="text-gray-600 font-medium"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- KPI Cards Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Card 1: Total Interns -->
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-6 rounded-xl shadow-lg flex items-center justify-between transform transition-transform hover:scale-105">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-80">Total Interns</h3>
+                                <p id="total-interns-count" class="text-4xl font-extrabold mt-1">0</p>
+                            </div>
+                            <div class="p-3 bg-white bg-opacity-20 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users-2 text-white">
+                                    <path d="M14 19a6 6 0 0 0-12 0"></path>
+                                    <circle cx="8" cy="10" r="4"></circle>
+                                    <path d="M22 19a6 6 0 0 0-12 0"></path>
+                                    <circle cx="16" cy="10" r="4"></circle>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Total Projects -->
+                        <div class="bg-gradient-to-br from-purple-500 to-purple-700 text-white p-6 rounded-xl shadow-lg flex items-center justify-between transform transition-transform hover:scale-105">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-80">Total Projects</h3>
+                                <p id="total-projects-count" class="text-4xl font-extrabold mt-1">0</p>
+                            </div>
+                            <div class="p-3 bg-white bg-opacity-20 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-open text-white">
+                                    <path d="M13.8 5.6a2 2 0 0 0-1.8-1.6H2.6A2.6 2.6 0 0 0 0 6.6v14.8A2.6 2.6 0 0 0 2.6 24h18.8a2.6 2.6 0 0 0 2.6-2.6V8.6a2.6 2.6 0 0 0-2.6-2.6H13.8z"></path>
+                                    <path d="M13.8 5.6L12.2 4.07A2 2 0 0 0 10.8 3.4H2.6A2.6 2.6 0 0 0 0 6.6v14.8A2.6 2.6 0 0 0 2.6 24h18.8a2.6 2.6 0 0 0 2.6-2.6V8.6a2.6 2.6 0 0 0-2.6-2.6H13.8z"></path>
+                                    <path d="M12 9.5l-4-4"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Pending Reports -->
+                        <div class="bg-gradient-to-br from-red-500 to-red-700 text-white p-6 rounded-xl shadow-lg flex items-center justify-between transform transition-transform hover:scale-105">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-80">Pending Reports</h3>
+                                <p id="pending-reports-count" class="text-4xl font-extrabold mt-1">0</p>
+                            </div>
+                            <div class="p-3 bg-white bg-opacity-20 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-x text-white">
+                                    <path d="M16 11l-2-2-2 2"></path>
+                                    <path d="M16 16l-2-2-2 2"></path>
+                                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect>
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Pending Permissions -->
+                        <div class="bg-gradient-to-br from-green-500 to-emerald-700 text-white p-6 rounded-xl shadow-lg flex items-center justify-between transform transition-transform hover:scale-105">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-80">Pending Permissions</h3>
+                                <p id="pending-permissions-count" class="text-4xl font-extrabold mt-1">0</p>
+                            </div>
+                            <div class="p-3 bg-white bg-opacity-20 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock-open text-white">
+                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    <path d="M15 11V7a3 3 0 0 0-6 0v4"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Card 5: Total Complaints & Suggestions -->
+                        <div class="bg-gradient-to-br from-orange-500 to-orange-700 text-white p-6 rounded-xl shadow-lg flex items-center justify-between transform transition-transform hover:scale-105">
+                            <div>
+                                <h3 class="text-lg font-medium opacity-80">Complaints & Suggestions</h3>
+                                <p id="total-complaints-count" class="text-4xl font-extrabold mt-1">0</p>
+                            </div>
+                            <div class="p-3 bg-white bg-opacity-20 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square text-white">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <hr class="my-8 border-t border-gray-300">
+
+
+                    <div id="recent-activities-container">
+                        <!-- Header with Refresh -->
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Recent Activities</h3>
+                        <button id="refresh-activities" 
+                         class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                            Refresh
+                        </button>
+                    </div>
+
+                    <!-- Loading state -->
+                    <div id="activities-loading" class="flex items-center justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600"></div>
+                        <span class="ml-3 text-gray-500">Loading recent activities...</span>
+                    </div>
+                    
+                    <!-- Activities list -->
+                    <div id="recent-activities-list" class="space-y-3 hidden"></div>
+                    
+                    <!-- Empty state -->
+                    <div id="no-activities" class="text-center py-8 hidden">
+                        <div class="w-12 h-12 mx-auto mb-3 text-gray-400">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+                                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </div>
+                        <p class="text-gray-500 text-sm">No recent activities to display</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+            setTimeout(() => {
+        dashboardContent.innerHTML = dashboardHtml;
+        skeleton.classList.add("hidden");
+        dashboardContent.classList.remove("hidden");
+
+        // Set current date AFTER rendering HTML
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Load dashboard data
+        loadDashboardData();
+
+        // Refresh button
+        document.getElementById('refresh-activities').addEventListener('click', loadRecentActivities);
+    }, 2500);
+}
+
+
+          
+async function loadDashboardData() {
+    try {
+        // Load stats
+        const res = await authenticatedFetch('/api/admin/dashboard/summary');
+        if (!res) return;
+        if (!res.ok) {
+            throw new Error("Failed to fetch dashboard data");
+        }
+        const data = await res.json();
+
+        // Update KPI cards
+        document.getElementById('total-interns-count').textContent = data.stats.total_interns ?? "0";
+        document.getElementById('total-projects-count').textContent = data.stats.total_projects ?? "0";
+        document.getElementById('pending-reports-count').textContent = data.stats.pending_reports ?? "0";
+        document.getElementById('pending-permissions-count').textContent = data.stats.pending_permissions ?? "0";
+        document.getElementById('total-complaints-count').textContent = data.stats.total_complaints ?? "0";
+
+        // Load recent activities
+        await loadRecentActivities();
+
+    } catch (error) {
+        console.error("Error loading dashboard:", error);
+        showModal("Error", "Failed to load dashboard data. Please try again later.");
+    }
+}
+
+async function loadRecentActivities() {
+    const activitiesLoading = document.getElementById('activities-loading');
+    const activitiesList = document.getElementById('recent-activities-list');
+    const noActivities = document.getElementById('no-activities');
+    
+    // Show loading state
+    activitiesLoading.classList.remove('hidden');
+    activitiesList.classList.add('hidden');
+    noActivities.classList.add('hidden');
+
+    try {
+        const res = await authenticatedFetch('/api/admin/dashboard/recent-activities?limit=5');
+        if (!res) return;
+        if (!res.ok) {
+            throw new Error("Failed to fetch recent activities");
+        }
+        const data = await res.json();
+
+        // Hide loading state
+        activitiesLoading.classList.add('hidden');
+
+        if (!data.activities || data.activities.length === 0) {
+            noActivities.classList.remove('hidden');
+            return;
+        }
+
+        // Show and populate activities
+        activitiesList.classList.remove('hidden');
+        renderRecentActivities(data.activities);
+
+    } catch (error) {
+        console.error("Error loading recent activities:", error);
+        activitiesLoading.classList.add('hidden');
+        noActivities.classList.remove('hidden');
+    }
+}
+
+function renderRecentActivities(activities) {
+    const activitiesList = document.getElementById('recent-activities-list');
+    activitiesList.innerHTML = '';
+
+    activities.forEach(activity => {
+        const activityElement = document.createElement('div');
+        activityElement.className = 'flex items-start space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 border border-gray-100';
+
+        const iconHtml = getActivityIcon(activity.type);
+        const statusBadge = getStatusBadge(activity.type, activity.metadata.status);
+
+        activityElement.innerHTML = `
+            <div class="flex-shrink-0 mt-1">
+                ${iconHtml}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                        ${activity.name}
+                    </p>
+                    <div class="flex items-center space-x-2">
+                        ${statusBadge}
+                        <span class="text-xs text-gray-500 font-medium">${activity.timeAgo}</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">${activity.description}</p>
+                <p class="text-xs text-gray-400 mt-1">${activity.email}</p>
+            </div>
+        `;
+
+        activitiesList.appendChild(activityElement);
+    });
+}
+
+function getActivityIcon(type) {
+    const iconClasses = "w-8 h-8 p-1.5 rounded-full";
+    
+    switch (type) {
+        case 'report':
+            return `<div class="${iconClasses} bg-green-100">
+                        <svg class="w-full h-full text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>`;
+        case 'project':
+            return `<div class="${iconClasses} bg-purple-100">
+                        <svg class="w-full h-full text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                    </div>`;
+        case 'leave':
+            return `<div class="${iconClasses} bg-yellow-100">
+                        <svg class="w-full h-full text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>`;
+        case 'complaint':
+            return `<div class="${iconClasses} bg-red-100">
+                        <svg class="w-full h-full text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                        </svg>
+                    </div>`;
+        default:
+            return `<div class="${iconClasses} bg-blue-100">
+                        <svg class="w-full h-full text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>`;
+    }
+}
+
+function getStatusBadge(type, status) {
+    if (!status) return '';
+
+    let badgeClass = 'px-2 py-1 text-xs font-medium rounded-full';
+    let badgeText = status;
+
+    if (status === 'pending') {
+        badgeClass += ' bg-yellow-100 text-yellow-800';
+    } else if (status === 'approved' || status === 'resolved' || status === 'completed') {
+        badgeClass += ' bg-green-100 text-green-800';
+    } else if (status === 'rejected' || status === 'dismissed') {
+        badgeClass += ' bg-red-100 text-red-800';
+    } else {
+        badgeClass += ' bg-gray-100 text-gray-800';
+    }
+
+    return `<span class="${badgeClass}">${badgeText}</span>`;
+}
+
+
+
+
+
+        // Function to render the Complaints & Suggestions view with the modal included.
+// Fixed Function to render the Complaints & Suggestions view with working pagination
+async function renderComplaintsAndSuggestionsView(page = 1, limit = 5) {
+    setBreadcrumb('Complaints & Suggestions');
+
+    mainContentArea.innerHTML = `
+        <div class="complaints-container p-6 bg-white rounded-xl shadow-lg">
+            <div class="complaints-header">
+                <h1 class="text-3xl font-bold text-gray-800">Complaints & Suggestions</h1>
+                <p class="text-gray-500 mt-1">Review all submissions from users.</p>
+            </div>
+
+            <div id="complaints-table-container" class="mt-8">
+                <div id="loading" class="loading-text flex items-center justify-center p-4 text-gray-500">
+                    <div class="loading-spinner mr-3"></div>
+                    Loading complaints...
+                </div>
+                <div id="empty-state" class="empty-state hidden text-center text-gray-500 p-8">
+                    <p class="text-lg">No complaints or suggestions found.</p>
+                </div>
+                <table id="complaints-table" class="w-full hidden border-collapse text-left">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                            <th class="py-3 px-6">Subject</th>
+                            <th class="py-3 px-6">Submitted By</th>
+                            <th class="py-3 px-6">Submitted On</th>
+                            <th class="py-3 px-6">Status</th>
+                            <th class="py-3 px-6">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="complaints-table-body" class="text-gray-600 text-sm font-light"></tbody>
+                </table>
+            </div>
+            <div id="complaints-pagination-controls" class="flex justify-center mt-4 space-x-2"></div>
+        </div>
+
+        <!-- Complaint Details Modal -->
+        <div id="complaintsDetailsModal" class="modal">
+            <div class="modal-content max-w-2xl w-full p-5">
+                <span id="closeComplaintsModalBtn" class="close-btn">&times;</span>
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Complaint Details</h2>
+                <div id="complaintsModalBody" class="space-y-3 text-gray-600"></div>
+                <div id="complaintsReviewSection" class="mt-6"></div>
+            </div>
+        </div>
+    `;
+
+    const complaintsTableBody = document.getElementById('complaints-table-body');
+    const loadingText = document.getElementById('loading');
+    const emptyState = document.getElementById('empty-state');
+    const complaintsTable = document.getElementById('complaints-table');
+    const paginationControls = document.getElementById('complaints-pagination-controls');
+    const detailsModal = document.getElementById('complaintsDetailsModal');
+    const modalBody = document.getElementById('complaintsModalBody');
+    const reviewSection = document.getElementById('complaintsReviewSection');
+    const closeModalBtn = document.getElementById('closeComplaintsModalBtn');
+    let allComplaints = [];
+
+    closeModalBtn.addEventListener('click', () => detailsModal.classList.remove('active'));
+    window.addEventListener('click', (event) => {
+        if (event.target === detailsModal) detailsModal.classList.remove('active');
+    });
+
+    // FIXED: Fetch complaints with proper credentials and template literals
+    async function fetchComplaints(page, limit) {
+        loadingText.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        complaintsTable.classList.add('hidden');
+
+        try {
+            // FIXED: Use proper template literal syntax and add credentials
+            const response = await fetch(`/api/admin/complaints?page=${page}&limit=${limit}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include' // CRITICAL: Add credentials for authentication
+            });
+            
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+
+            allComplaints = data.complaints;
+            loadingText.classList.add('hidden');
+
+            if (allComplaints.length === 0) {
+                emptyState.classList.remove('hidden');
+                complaintsTable.classList.add('hidden');
+                paginationControls.innerHTML = '';
+            } else {
+                complaintsTable.classList.remove('hidden');
+                renderComplaints(allComplaints);
+                // FIXED: Pass the render function properly
+                renderComplaintsPagination(paginationControls, data.current_page, data.total_pages, limit);
+            }
+        } catch (error) {
+            console.error('Could not fetch complaints:', error);
+            loadingText.textContent = `Failed to load complaints: ${error.message}`;
+        }
+    }
+
+    // Render complaints table (unchanged)
+    function renderComplaints(complaints) {
+        complaintsTableBody.innerHTML = '';
+        complaints.forEach(complaint => {
+            const submittedDate = new Date(complaint.submitted_at).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric'
+            });
+            const status = complaint.status || 'Pending';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 font-medium">${complaint.subject}</td>
+                <td class="px-6 py-4">${complaint.first_name} ${complaint.last_name}</td>
+                <td class="px-6 py-4">${submittedDate}</td>
+                <td class="px-6 py-4 font-semibold ${status.toLowerCase() === 'pending' ? 'text-yellow-600' : status.toLowerCase() === 'resolved' ? 'text-green-600' : 'text-red-600'}">${status}</td>
+                <td class="px-6 py-4 text-center">
+                    <button class="view-details-btn px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700" data-complaint-id="${complaint.complaints_id}">
+                        View Details
+                    </button>
+                </td>
+            `;
+            complaintsTableBody.appendChild(row);
+        });
+    }
+
+    // FIXED: Separate pagination function for complaints to avoid conflicts
+    function renderComplaintsPagination(container, currentPage, totalPages, limit) {
+        container.innerHTML = '';
+        
+        if (currentPage > 1) {
+            const prev = document.createElement('button');
+            prev.textContent = 'Previous';
+            prev.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+            // FIXED: Use arrow function to preserve scope and call the correct function
+            prev.addEventListener('click', () => renderComplaintsAndSuggestionsView(currentPage - 1, limit));
+            container.appendChild(prev);
+        }
+        
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i;
+            btn.className = `px-4 py-2 border rounded-md ${i === currentPage ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`;
+            // FIXED: Use arrow function to preserve scope
+            btn.addEventListener('click', () => renderComplaintsAndSuggestionsView(i, limit));
+            container.appendChild(btn);
+        }
+        
+        if (currentPage < totalPages) {
+            const next = document.createElement('button');
+            next.textContent = 'Next';
+            next.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+            // FIXED: Use arrow function to preserve scope
+            next.addEventListener('click', () => renderComplaintsAndSuggestionsView(currentPage + 1, limit));
+            container.appendChild(next);
+        }
+    }
+
+    function escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;')
+            .replace(/`/g, '&#96;');
+    }
+
+    function showComplaintDetailsModal(complaint) {
+        const submittedAt = complaint.submitted_at ? new Date(complaint.submitted_at).toLocaleString() : 'N/A';
+        const incidentDateTime = complaint.incident_date_time ? new Date(complaint.incident_date_time).toLocaleString() : 'N/A';
+        const incidentLocation = complaint.incident_location || 'N/A';
+        const participants = Array.isArray(complaint.participants) ? complaint.participants : [];
+
+        modalBody.innerHTML = `
+            <dl class="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                <dt class="font-semibold text-gray-700">Submitted by:</dt>
+                <dd class="col-span-2">${escapeHtml(complaint.first_name || '')} ${escapeHtml(complaint.last_name || '')} (${escapeHtml(complaint.email || '')})</dd>
+
+                <dt class="font-semibold text-gray-700">Subject:</dt>
+                <dd class="col-span-2">${escapeHtml(complaint.subject || 'No subject')}</dd>
+
+                <dt class="font-semibold text-gray-700">Message:</dt>
+                <dd class="col-span-2">${escapeHtml(complaint.message || '—')}</dd>
+
+                <dt class="font-semibold text-gray-700">Submitted On:</dt>
+                <dd class="col-span-2">${escapeHtml(submittedAt)}</dd>
+
+                <dt class="font-semibold text-gray-700">Incident Date/Time:</dt>
+                <dd class="col-span-2">${escapeHtml(incidentDateTime)}</dd>
+
+                <dt class="font-semibold text-gray-700">Incident Location:</dt>
+                <dd class="col-span-2">${escapeHtml(incidentLocation)}</dd>
+
+                <dt class="font-semibold text-gray-700">Details:</dt>
+                <dd class="col-span-2">${escapeHtml(complaint.complaint_details || '—')}</dd>
+
+                <dt class="font-semibold text-gray-700">Participants:</dt>
+                <dd class="col-span-2">
+                    <ul class="list-disc list-inside ml-4">
+                        ${participants.length > 0 
+                            ? participants.map(p => `<li>${escapeHtml(p.name || '')} - ${escapeHtml(p.involvement || '')} (${escapeHtml(p.mobile || '')})</li>`).join('')
+                            : '<li>No participants</li>'}
+                    </ul>
+                </dd>
+            </dl>
+
+            <hr class="my-3" />
+            <div id="modal-response-block" class="text-sm">
+                <p class="font-semibold mb-1">Admin Response</p>
+                <div id="modal-full-response" class="whitespace-pre-wrap text-gray-800">${escapeHtml(complaint.response || 'No response yet')}</div>
+                <p class="text-xs text-gray-500 mt-2"><strong>Reviewed at:</strong> ${complaint.reviewed_at ? escapeHtml(new Date().toLocaleString()) : 'N/A'}</p>
+            </div>
+        `;
+
+        reviewSection.innerHTML = '';
+        const statusLower = String(complaint.status || '').toLowerCase();
+        const isPending = (statusLower === 'pending' || statusLower === '');
+
+        if (isPending) {
+            reviewSection.innerHTML = `
+                <label for="complaintResponse" class="block font-medium mb-2">Response</label>
+                <textarea id="complaintResponse" rows="4" placeholder="Write your response..." class="w-full border rounded-md p-2 mb-3"></textarea>
+                <div class="flex space-x-2">
+                    <button id="resolveBtn" class="approve-btn bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700" data-id="${escapeHtml(complaint.complaints_id)}">Resolve</button>
+                    <button id="dismissBtn" class="dismiss-btn bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700" data-id="${escapeHtml(complaint.complaints_id)}">Dismiss</button>
+                </div>
+            `;
+        } else {
+            reviewSection.innerHTML = `
+                <p class="mt-2"><strong>Status:</strong> ${escapeHtml(complaint.status || 'N/A')}</p>
+            `;
+        }
+
+        detailsModal.classList.add('active');
+    }
+
+    // Open modal
+    complaintsTableBody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('view-details-btn')) {
+            const id = e.target.dataset.complaintId;
+            const complaint = allComplaints.find(c => c.complaints_id.toString() === id);
+            if (complaint) showComplaintDetailsModal(complaint);
+        }
+    });
+
+    // FIXED: Handle approve/dismiss actions with proper credentials
+    reviewSection.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('approve-btn') || e.target.classList.contains('dismiss-btn')) {
+            const id = e.target.dataset.id;
+            const action = e.target.classList.contains('approve-btn') ? 'resolved' : 'dismissed';
+            const responseText = document.getElementById('complaintResponse')?.value || '';
+
+            try {
+                // FIXED: Add credentials and use proper template literal
+                const res = await fetch(`/api/admin/complaints/${id}/review`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // CRITICAL: Add credentials
+                    body: JSON.stringify({
+                        status: action,
+                        response: responseText
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'Failed to update complaint');
+
+                alert(`Complaint ${action} successfully.`);
+                detailsModal.classList.remove('active');
+                // FIXED: Maintain current page when refreshing
+                renderComplaintsAndSuggestionsView(page, limit);
+            } catch (err) {
+                console.error('Error reviewing complaint:', err);
+                alert(err.message);
+            }
+        }
+    });
+
+    // FIXED: Initial fetch with error handling
+    try {
+        await fetchComplaints(page, limit);
+    } catch (error) {
+        console.error('Error initializing complaints view:', error);
+        loadingText.textContent = `Failed to initialize: ${error.message}`;
+    }
+}
+    
+        
+// --- Professional Notification System ---
+
+  const notificationBell = document.getElementById('notification-bell');
+  const notificationCountSpan = document.getElementById('notification-count');
+  const notificationDropdown = document.getElementById('notification-dropdown');
+  const notificationList = document.getElementById('notification-list');
+  const notificationLoading = document.getElementById('notification-loading');
+  const noNotifications = document.getElementById('no-notifications');
+  const notificationFooter = document.getElementById('notification-footer');
+  const markAllReadBtn = document.getElementById('mark-all-read');
+
+  //if (!notificationList) return; // nothing to do if markup missing
+
+  let notifications = [];
+  let isNotificationDropdownOpen = false;
+  let notificationRefreshInterval = null;
+
+  const NotificationState = {
+    isLoading: false,
+    hasError: false,
+    lastFetchTime: null,
+    unreadCount: 0
+  };
+
+  function formatNotificationTime(timestamp) {
+    const now = new Date();
+    const notificationDate = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - notificationDate) / 1000);
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInSeconds < 30) {
+        return 'Just now';
+    } else if (diffInSeconds < 60) {
+        return `${diffInSeconds}s ago`;
+    } else if (diffInMinutes < 60) {
+        return `${diffInMinutes}m ago`;
+    } else if (diffInHours < 24) {
+        return `${diffInHours}h ago`;
+    } else if (diffInDays < 7) {
+        return `${diffInDays}d ago`;
+    } else {
+        return notificationDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            ...(notificationDate.getFullYear() !== now.getFullYear() && { year: 'numeric' })
+        });
+    }
+}
+
+  // Keep spinner element in DOM — just toggle its visibility
+  function showNotificationLoading() {
+    if (notificationLoading) {
+      notificationLoading.style.display = 'flex'; // use flex so it's centered by your CSS
+    }
+    if (noNotifications) noNotifications.style.display = 'none';
+    // remove only notification items, leave spinner and other static elements intact
+    notificationList.querySelectorAll('.notification-item').forEach(item => item.remove());
+  }
+
+  function hideNotificationLoading() {
+    if (notificationLoading) notificationLoading.style.display = 'none';
+  }
+
+  function showNoNotifications() {
+    if (noNotifications) noNotifications.style.display = 'block';
+    if (notificationFooter) notificationFooter.style.display = 'none';
+  }
+
+  function hideNoNotifications() {
+    if (noNotifications) noNotifications.style.display = 'none';
+  }
+
+  function showNotificationError(message) {
+    notificationList.innerHTML = `
+      <div class="notification-error" style="padding: 20px; text-align: center;">
+        <i data-lucide="wifi-off" class="w-8 h-8 mx-auto mb-2 text-red-400"></i>
+        <div class="text-sm font-medium text-red-600 mb-1">Connection Error</div>
+        <div class="text-xs text-red-500">${String(message)}</div>
+        <button id="notification-try-again" class="mt-2 text-xs text-blue-600 hover:text-blue-800">
+          Try again
+        </button>
+      </div>
+    `;
+    // make sure icons render
+    if (window.lucide) lucide.createIcons();
+
+    // attach try-again handler
+    const tryBtn = document.getElementById('notification-try-again');
+    if (tryBtn) tryBtn.addEventListener('click', () => fetchNotifications(true));
+  }
+
+  function hideNotificationError() {
+    const err = notificationList.querySelector('.notification-error');
+    if (err) err.remove();
+  }
+
+  function updateNotificationState() {
+    const unreadNotifications = notifications.filter(notif => !notif.is_read);
+    NotificationState.unreadCount = unreadNotifications.length;
+
+    if (notificationCountSpan) {
+      if (NotificationState.unreadCount > 0) {
+        notificationCountSpan.textContent = NotificationState.unreadCount > 99 ? '99+' : String(NotificationState.unreadCount);
+        notificationCountSpan.style.display = 'flex';
+      } else {
+        notificationCountSpan.style.display = 'none';
+      }
+    }
+
+    if (markAllReadBtn) {
+      markAllReadBtn.style.display = NotificationState.unreadCount > 0 ? 'block' : 'none';
+    }
+  }
+
+  function renderNotifications() {
+    hideNotificationLoading();
+    hideNotificationError();
+
+    // remove prior items but keep spinner/no-notifications blocks
+    notificationList.querySelectorAll('.notification-item, .notification-empty-placeholder').forEach(el => el.remove());
+
+    if (!notifications || notifications.length === 0) {
+      showNoNotifications();
+      return;
+    }
+
+    hideNoNotifications();
+
+    // Group unread first then read
+    const unread = notifications.filter(n => !n.is_read);
+    const read = notifications.filter(n => n.is_read);
+    const sorted = [...unread, ...read];
+
+    sorted.forEach(notif => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = `notification-item ${!notif.is_read ? 'unread' : ''}`;
+      itemDiv.dataset.id = notif.notification_id;
+
+      const senderName = (notif.first_name && notif.last_name)
+        ? `${notif.first_name} ${notif.last_name}`
+        : (notif.email || 'System');
+
+      itemDiv.innerHTML = `
+        <div class="notification-content px-4 py-3 border-b border-gray-100">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="notification-sender text-sm font-medium text-gray-800">${senderName}</div>
+              <div class="notification-message text-sm text-gray-700 mt-1">${notif.message}</div>
+              <div class="notification-time text-xs text-gray-400 mt-1">${formatNotificationTime(notif.created_at)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      itemDiv.addEventListener('click', () => handleNotificationClick(notif, itemDiv));
+      notificationList.appendChild(itemDiv);
+    });
+
+    // footer visibility
+    if (notificationFooter) {
+      notificationFooter.style.display = notifications.length >= 5 ? 'block' : 'none';
+    }
+  }
+
+  // Fetching
+  async function fetchNotifications(showLoading = false) {
+    if (NotificationState.isLoading) return;
+    NotificationState.isLoading = true;
+    NotificationState.hasError = false;
+
+    if (showLoading && isNotificationDropdownOpen) {
+      showNotificationLoading();
+    }
+
+    try {
+      const response = await authenticatedFetch('/api/admin/admin-notifications', { method: 'GET' });
+      if (!response) return; // auth redirect handled elsewhere
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      // support both { success:true, notifications: [] } and raw array
+      notifications = Array.isArray(data) ? data : (data.notifications || data);
+      NotificationState.lastFetchTime = new Date();
+
+      updateNotificationState();
+      if (isNotificationDropdownOpen) renderNotifications();
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      NotificationState.hasError = true;
+      if (isNotificationDropdownOpen) showNotificationError(err.message || err);
+    } finally {
+      NotificationState.isLoading = false;
+      // ensure spinner hidden after fetch attempt completes
+      hideNotificationLoading();
+    }
+  }
+
+  // Mark single notification read (on click)
+  async function handleNotificationClick(notif, itemElement) {
+    if (!notif) return;
+    if (!notif.is_read) {
+      try {
+        const res = await fetch(`/api/admin/notifications/${notif.notification_id}/read`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }});
+        if (res.ok) {
+          notif.is_read = true;
+          if (itemElement) itemElement.classList.remove('unread');
+          NotificationState.unreadCount = Math.max(0, NotificationState.unreadCount - 1);
+          updateNotificationState();
+        }
+      } catch (err) {
+        console.error('Failed to mark notification read:', err);
+      }
+    }
+
+    // follow link if present
+    if (notif.link && notif.link.trim()) {
+      closeNotificationDropdown();
+      setTimeout(() => {
+        if (notif.link.startsWith('/Admin_dashboard.html')) {
+          window.location.href = notif.link;
+        } else {
+          console.warn('Notification link not valid:', notif.link);
+        }
+      }, 150);
+    }
+  }
+
+  // Mark all as read
+  async function markAllNotificationsAsRead() {
+    if (NotificationState.unreadCount === 0) return;
+    try {
+      const response = await fetch('/api/admin/notifications/mark-all-read', { method: 'PUT', headers: { 'Content-Type': 'application/json' }});
+      if (response.ok) {
+        notifications.forEach(n => n.is_read = true);
+        NotificationState.unreadCount = 0;
+        updateNotificationState();
+        renderNotifications();
+        showToast('All notifications marked as read', 'success');
+      } else {
+        showToast('Failed to mark notifications as read', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to mark all notifications:', err);
+      showToast('Failed to mark notifications as read', 'error');
+    }
+  }
+
+  // Dropdown open/close
+  function openNotificationDropdown() {
+    if (isNotificationDropdownOpen) return;
+    isNotificationDropdownOpen = true;
+    if (notificationDropdown) notificationDropdown.classList.add('active');
+    fetchNotifications(true);
+    if (notificationBell) notificationBell.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+  }
+
+  function closeNotificationDropdown() {
+    if (!isNotificationDropdownOpen) return;
+    isNotificationDropdownOpen = false;
+    if (notificationDropdown) notificationDropdown.classList.remove('active');
+    if (notificationBell) notificationBell.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+  }
+
+  function toggleNotificationDropdown() {
+    isNotificationDropdownOpen ? closeNotificationDropdown() : openNotificationDropdown();
+  }
+
+  // Toast
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full`;
+    const colors = { success: 'bg-green-500 text-white', error: 'bg-red-500 text-white', info: 'bg-blue-500 text-white' };
+    toast.className += ` ${colors[type] || colors.info}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.remove('translate-x-full'));
+    setTimeout(() => { toast.classList.add('translate-x-full'); setTimeout(() => toast.remove(), 300); }, 3000);
+  }
+
+  // Events
+  if (notificationBell) {
+    notificationBell.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      toggleNotificationDropdown();
+    });
+  }
+
+  if (markAllReadBtn) {
+    markAllReadBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      markAllNotificationsAsRead();
+    });
+  }
+
+  document.addEventListener('click', (ev) => {
+    if (!notificationDropdown.contains(ev.target) && !notificationBell.contains(ev.target)) {
+      closeNotificationDropdown();
+    }
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && isNotificationDropdownOpen) closeNotificationDropdown();
+  });
+
+  // Polling
+  function startNotificationPolling() {
+    // initial fetch (no spinner)
+    fetchNotifications(false);
+
+    notificationRefreshInterval = setInterval(() => {
+      if (!isNotificationDropdownOpen) fetchNotifications(false);
+    }, 45_000);
+  }
+
+  function stopNotificationPolling() {
+    if (notificationRefreshInterval) {
+      clearInterval(notificationRefreshInterval);
+      notificationRefreshInterval = null;
+    }
+  }
+
+  // Make sure lucide icons render for static markup
+  if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+
+  // Start
+  startNotificationPolling();
+  window.addEventListener('beforeunload', stopNotificationPolling);
+
+
+
+
+// 5. QUICK TEST FUNCTION
+async function testAuth() {
+    console.log('Testing authentication...');
+    try {
+        const response = await authenticatedFetch('/auth/validate-session');
+        if (response) {
+            const data = await response.json();
+            console.log('Auth test successful:', data);
+        } else {
+            console.log('Auth test failed: No response');
+        }
+    } catch (error) {
+        console.error('Auth test failed:', error);
+    }
+}
+
+
+
+        /**
+ * Fetches a single intern's details from the backend and renders the edit form.
+ * @param {string} internId - The ID of the intern to fetch.
+ */
+async function fetchAndRenderInternDetails(internId) {
+    showSpinner();
+    try {
+        const response = await fetch(`/api/admin/interns/${internId}`, {
+            method: 'GET',
+        credentials: 'include',
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+        const intern = await response.json();
+        hideSpinner();
+        renderEditInternForm(intern);
+    } catch (error) {
+        hideSpinner();
+        console.error('Failed to fetch intern details:', error);
+        mainContentArea.innerHTML = `<p class="text-red-500 text-center text-lg">Error: ${error.message}</p>`;
+    }
+}
+
+/**
+ * Renders the form to edit an intern's details.
+ * @param {Object} intern - The intern object whose details are to be edited.
+ */
+function renderEditInternForm(intern) {
+    setBreadcrumb('Interns', 'Edit');
+
+    mainContentArea.innerHTML = `
+        <div class="bg-white rounded-lg shadow-md p-6 w-full max-w-4xl mx-auto">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Intern Details</h2>
+            <form id="editInternForm" class="space-y-6 w-full" enctype="multipart/form-data">
+                <input type="hidden" id="internId" value="${intern.user_id}">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    <div>
+                        <label for="editFirstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                        <input type="text" id="editFirstName" name="first_name" value="${intern.first_name || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2" required>
+                    </div>
+                    <div>
+                        <label for="editMiddleName" class="block text-sm font-medium text-gray-700">Middle Name</label>
+                        <input type="text" id="editMiddleName" name="middle_name" value="${intern.middle_name || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="editLastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+                        <input type="text" id="editLastName" name="last_name" value="${intern.last_name || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2" required>
+                    </div>
+                    <div>
+                        <label for="editMatricNumber" class="block text-sm font-medium text-gray-700">Matric No.</label>
+                        <input type="text" id="editMatricNumber" name="matric_number" value="${intern.matric_number || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="editInstitution" class="block text-sm font-medium text-gray-700">Institution</label>
+                        <input type="text" id="editInstitution" name="institution" value="${intern.institution || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="editPhoneNumber" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input type="tel" id="editPhoneNumber" name="phone_number" value="${intern.phone_number || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2">
+                    </div>
+                    <div>
+                        <label for="editEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="editEmail" name="email" value="${intern.email || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2" required>
+                    </div>
+                </div>
+
+                <hr class="my-6 border-gray-200">
+
+                <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                    <div class="flex-shrink-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Current Profile Image:</label>
+                        ${intern.user_image_url ?
+                            `<img src="${intern.user_image_url}" alt="Current Profile Image" class="h-24 w-24 rounded-full object-cover border border-gray-300">` :
+                            `<div class="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs text-center border border-gray-300">No Image</div>`
+                        }
+                    </div>
+                    <div class="flex-1 w-full">
+                        <label for="editProfileImage" class="block text-sm font-medium text-gray-700">Change Profile Image</label>
+                        <input type="file" id="editProfileImage" name="profile_image" accept="image/*" class="mt-1 block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-md file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100 cursor-pointer">
+                        <p class="mt-1 text-xs text-gray-500">Max 5MB. JPG, PNG, GIF.</p>
+                    </div>
+                </div>
+
+                <hr class="my-6 border-gray-200">
+
+                <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                    <div class="flex-shrink-0">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Current Acceptance Letter:</label>
+                        ${intern.acceptance_letter_url ?
+                            `<a href="${intern.acceptance_letter_url}" target="_blank" class="text-blue-600 hover:underline">View Current Letter</a>` :
+                            `<span class="text-gray-400 text-sm">No Letter Uploaded</span>`
+                        }
+                    </div>
+                    <div class="flex-1 w-full">
+                        <label for="editAcceptanceLetter" class="block text-sm font-medium text-gray-700">Change Acceptance Letter</label>
+                        <input type="file" id="editAcceptanceLetter" name="acceptance_letter" accept=".pdf,.doc,.docx" class="mt-1 block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-md file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100 cursor-pointer">
+                        <p class="mt-1 text-xs text-gray-500">Max 10MB. PDF, DOC, DOCX.</p>
+                    </div>
+                </div>
+
+                <!-- New password fields section -->
+                <hr class="my-6 border-gray-200">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="newPassword" class="block text-sm font-medium text-gray-700">New Password</label>
+                        <input type="password" id="newPassword" name="new_password" autocomplete="new-password"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                               placeholder="Enter new password">
+                    </div>
+                    <div>
+                        <label for="confirmNewPassword" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                        <input type="password" id="confirmNewPassword" name="confirm_new_password" autocomplete="new-password"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+                               placeholder="Confirm new password">
+                    </div>
+                </div>
+
+
+                <div class="mt-8 flex justify-end space-x-4">
+                    <button type="button" onclick="loadInternsList(1)" class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+    Cancel
+</button>
+                    <button type="submit" class="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.getElementById('editInternForm').addEventListener('submit', handleEditInternSubmit);
+}
+
+
+/**
+ * Handles the submission of the edit intern form.
+ * @param {Event} event - The submit event.
+ */
+async function handleEditInternSubmit(event) {
+    event.preventDefault();
+            showSpinner(); 
+
+    const internId = document.getElementById('internId').value;
+    const form = event.target;
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(`/api/admin/interns/${internId}`, {
+            method: 'PUT',
+            body: formData,
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        hideSpinner();
+
+        // Show a success modal with a callback to redirect
+        showModal('Success', result.message || 'Intern details updated successfully!', () => {
+                    loadInternsList(); 
+        });
+
+    } catch (error) {
+        hideSpinner();
+        console.error('Failed to update intern details:', error);
+        showModal('Error', `Failed to update intern details: ${error.message}.`);
+    }
+}
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+    let currentUser = null;
+    let isAdminOrSuperadmin = false;
+
+    try {
+        currentUser = await validateSession();
+
+        if (currentUser) {
+            isAdminOrSuperadmin = (currentUser.role === 'admin' || currentUser.role === 'superadmin');
+
+            // Update logged-in user display
+            if (loggedInUserNameSpan) {
+                const displayName = currentUser.first_name && currentUser.last_name 
+                    ? `${currentUser.first_name} ${currentUser.last_name}`
+                    : currentUser.email;
+                loggedInUserNameSpan.textContent = displayName;
+            }
+
+            // Handle role-based sidebar visibility
+            if (currentUser.role === 'superadmin') {
+                const accountsManagementLink = document.getElementById("accountsManagementLink");
+                if (accountsManagementLink) {
+                    accountsManagementLink.classList.remove("hidden");
+                }
+
+                const registerAdminLink = document.getElementById("registerAdminLink");
+                if (registerAdminLink) {
+                    registerAdminLink.classList.remove("hidden");
+                }
+            } else {
+                registerAdminLink.classList.add('hidden');
+            }
+
+        } else {
+            throw new Error('No valid session');
+        }
+    } catch (e) {
+        console.error('Session validation failed:', e);
+        sessionStorage.removeItem('currentUser');
+        showModal('Session Expired', 'Please log in again.', () => {
+            window.location.href = '/Sign_in.html';
+        });
+        return;
+    }
+
+
+            // --- Logout functionality ---
+            if (signOutLink) {
+                signOutLink.addEventListener('click', async (event) => {
+                    event.preventDefault();
+                    try {
+                        const response = await fetch(`/auth/logout`, { method: 'POST', credentials: 'include' });
+                        if (response.ok) {
+                            sessionStorage.removeItem('currentUser'); 
+                            showModal('Logged Out', 'You have been successfully logged out.', '/Sign_in.html'); 
+                            window.location.href = '/Sign_in.html';
+                        } else {
+                            const errorData = await response.json();
+                            showModal('Logout Error', errorData.message || 'Failed to log out.');
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                        showModal('Network Error', 'Could not connect to the backend for logout.');
+                    }
+                });
+            }
+
+
+
+
+/**
+ * Renders the pagination buttons.
+ * This is the correct, reusable version.
+ * @param {HTMLElement} container - The container element for the buttons.
+ * @param {number} currentPage - The current page number.
+ * @param {number} totalPages - The total number of pages.
+ * @param {number} limit - The number of items per page.
+ * @param {Function} renderFunction - The function to call when a button is clicked.
+ */
+function renderPagination(container, currentPage, totalPages, limit, renderFunction) {
+    container.innerHTML = '';
+    
+    // Previous Button
+    if (currentPage > 1) {
+        const prevButton = document.createElement('button');
+        prevButton.textContent = 'Previous';
+        prevButton.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+        prevButton.addEventListener('click', () => renderFunction(currentPage - 1, limit));
+        container.appendChild(prevButton);
+    }
+
+    // Page number buttons
+    for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.className = `px-4 py-2 border rounded-md ${i === currentPage ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`;
+        pageButton.addEventListener('click', () => renderFunction(i, limit));
+        container.appendChild(pageButton);
+    }
+
+    // Next Button
+    if (currentPage < totalPages) {
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Next';
+        nextButton.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+        nextButton.addEventListener('click', () => renderFunction(currentPage + 1, limit));
+        container.appendChild(nextButton);
+    }
+}
+
+
+
+
+         // --- Logbook Viewer Functions ---
+let interns = []; // All interns for the dropdown
+let logbookReports = []; // Logbooks for the currently selected intern
+let currentGrades = {}; // { logbookId: gradeValue } for local input state
+
+const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+};
+
+// This function renders the HTML for the logbook viewer into the main content area
+function renderLogbookViewSection() {
+    setBreadcrumb('Logbook Reports');
+
+    
+    mainContentArea.innerHTML = `
+       <div class="min-h-full bg-gray-100 px-6 py-4">
+    <div class="max-w-7xl mx-auto">
+        <!-- breadcrumb is already inserted by setBreadcrumb -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mt-6">
+
+
+            <!-- Intern Selection -->
+            <div class="mb-6">
+                <label for="internSelectLogbook" class="block text-gray-700 text-lg font-semibold mb-2">Select Intern:</label>
+                <div class="relative">
+                    <select
+                        id="internSelectLogbook"
+                        class="block appearance-none w-full bg-gray-50 border border-gray-300 text-gray-900 py-3 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">-- Choose an Intern --</option>
+                        <!-- Interns will be dynamically loaded here by JavaScript -->
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logbook Reports Display -->
+           <div id="logbookReportsSection" class="mt-8 hidden">
+                <h2 id="internNameHeader" class="text-2xl font-bold text-gray-800 mb-4"></h2>
+                <p id="noReportsMessage" class="text-gray-600 italic hidden">No logbook reports submitted by this intern yet.</p>
+
+                <div class="overflow-x-auto rounded-lg shadow-md border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Date Submitted
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Report Details
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Grade
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="logbookTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="logbook-pagination-controls" class="flex justify-center mt-4 space-x-2"></div>
+            </div>
+        </div>
+    </div>
+    `;
+   
+    lucide.createIcons();
+
+    // Attach event listener for the newly rendered intern select dropdown
+    const internSelectLogbook = document.getElementById('internSelectLogbook');
+    if (internSelectLogbook) {
+        internSelectLogbook.addEventListener('change', (event) => {
+            const selectedInternId = event.target.value;
+            
+            
+            if (selectedInternId && selectedInternId !== '') {
+                // FIXED: Find the selected intern object and pass the names
+                const selectedIntern = interns.find(intern => intern.user_id == selectedInternId); // Use == instead of === for type flexibility
+            
+                
+                if (selectedIntern) {
+                    fetchLogbookReports(selectedInternId, selectedIntern.first_name, selectedIntern.last_name, 1); // Always start from page 1
+                } else {
+                    console.error('Intern not found for ID:', selectedInternId);
+                    showModal("Error", "Selected intern not found. Please try again.");
+                }
+            } else {
+                // Hide the reports section when no intern is selected
+                const logbookReportsSection = document.getElementById('logbookReportsSection');
+                const logbookTableBody = document.getElementById('logbookTableBody');
+                const paginationControls = document.getElementById('logbook-pagination-controls');
+                
+                if (logbookReportsSection) logbookReportsSection.classList.add('hidden');
+                if (logbookTableBody) logbookTableBody.innerHTML = '';
+                if (paginationControls) paginationControls.innerHTML = '';
+            }
+        });
+    }
+}
+
+/**
+ * Fetches the list of interns from the Node.js backend.
+ * Populates the intern selection dropdown in the logbook viewer.
+ */
+async function fetchInternsForLogbookViewer() {
+    //showSpinner();
+    try {
+        // Use the admin endpoint that returns ALL interns
+        const response = await fetch('/api/admin/view-interns');
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                sessionStorage.removeItem('currentUser');
+                throw new Error('Authentication/Authorization failed. Please log in again.');
+            }
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+        // Normalize the response to always be an array
+        const data = await response.json();
+        interns = Array.isArray(data) ? data : (Array.isArray(data?.interns) ? data.interns : (data && data.success ? [data] : []));
+
+        const internSelectLogbook = document.getElementById('internSelectLogbook');
+        if (!internSelectLogbook) return; 
+
+        internSelectLogbook.innerHTML = '<option value="">-- Choose an Intern --</option>';
+        interns.forEach(intern => {
+            const option = document.createElement('option');
+            option.value = intern.user_id; 
+            option.textContent = `${intern.first_name} ${intern.last_name}`;
+            // Add data attributes for debugging
+            option.setAttribute('data-first-name', intern.first_name || '');
+            option.setAttribute('data-last-name', intern.last_name || '');
+            internSelectLogbook.appendChild(option);
+        });
+
+        // FIXED: Auto-select first intern and load their reports properly
+        if (Array.isArray(interns) && interns.length > 0) {
+            const firstIntern = interns[0];
+            internSelectLogbook.value = firstIntern.user_id; // Select the first intern by default
+            fetchLogbookReports(firstIntern.user_id, firstIntern.first_name, firstIntern.last_name, 1);
+        } else {
+            const logbookReportsSection = document.getElementById('logbookReportsSection');
+            if (logbookReportsSection) {
+                logbookReportsSection.classList.add('hidden');
+            }
+        }
+        hideSpinner();
+
+    } catch (error) {
+        hideSpinner();
+        console.error("Error fetching interns for logbook viewer:", error);
+        showModal("Error", `Failed to load interns for logbook viewer: ${error.message}`);
+    }
+}
+
+/**
+ * Fetches logbook reports for a given internId with pagination.
+ * @param {string} internId - The ID of the selected intern.
+ * @param {string} internFirstName - The first name of the intern.
+ * @param {string} internLastName - The last name of the intern.
+ * @param {number} page - The current page number to fetch.
+ * @param {number} limit - The number of reports per page.
+ */
+async function fetchLogbookReports(internId, internFirstName, internLastName, page = 1, limit = 5) {
+    const logbookReportsSection = document.getElementById('logbookReportsSection');
+    const internNameHeader = document.getElementById('internNameHeader');
+    const noReportsMessage = document.getElementById('noReportsMessage');
+    const logbookTableBody = document.getElementById('logbookTableBody');
+    const paginationControls = document.getElementById('logbook-pagination-controls');
+
+    if (!logbookReportsSection || !internNameHeader || !logbookTableBody || !noReportsMessage || !paginationControls) return;
+
+    logbookReportsSection.classList.remove('hidden');
+    
+    // FIXED: Provide fallback values and better display logic
+    const displayFirstName = internFirstName || 'Unknown';
+    const displayLastName = internLastName || '';
+    const fullName = displayLastName ? `${displayFirstName} ${displayLastName}` : displayFirstName;
+    
+    // Use the passed-in name for the initial loading message
+    internNameHeader.textContent = `Loading reports for ${fullName}...`;
+    logbookTableBody.innerHTML = '';
+    paginationControls.innerHTML = '';
+
+    showSpinner();
+    try {
+        const response = await fetch(`/api/admin/interns/${internId}/logbooks?page=${page}&limit=${limit}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        hideSpinner();
+
+        // Sort the fetched logbook reports
+        const fetchedReports = data.logbooks.sort((a, b) => new Date(a.week_date) - new Date(b.week_date));
+        
+        // FIXED: Store the reports globally for other functions to use
+        logbookReports = fetchedReports;
+
+        // Use the passed-in name for the final header
+        internNameHeader.textContent = `Logbook Reports for ${fullName}`;
+
+        if (fetchedReports.length === 0) {
+            noReportsMessage.classList.remove('hidden');
+            noReportsMessage.textContent = 'No logbook reports submitted by this intern yet.';
+            paginationControls.innerHTML = '';
+        } else {
+            noReportsMessage.classList.add('hidden');
+            renderLogbookReports(fetchedReports);
+            // Pass the names to the pagination function as well
+            renderPagination(paginationControls, data.current_page, data.total_pages, limit, (newPage) => 
+                fetchLogbookReports(internId, internFirstName, internLastName, newPage, limit)
+            );
+        }
+
+    } catch (error) {
+        hideSpinner();
+        console.error(`Error fetching logbook reports for intern ${internId}:`, error);
+        showModal("Error", `Failed to load logbook reports: ${error.message}`);
+        internNameHeader.textContent = `Error loading reports for ${fullName}`;
+        logbookReportsSection.classList.remove('hidden');
+        noReportsMessage.classList.remove('hidden');
+        noReportsMessage.textContent = 'Could not load reports for this intern.';
+    }
+}
+
+/**
+ * Sends a grade update for a specific logbook report to the Node.js backend.
+ * @param {string} logbookId - The ID of the logbook report to update.
+ * @param {string} grade - The grade to save.
+ */
+async function saveGrade(logbookId, grade) {
+    if (!grade || grade.trim() === '') {
+        showModal("Validation Error", "Please enter a grade before saving.");
+        return;
+    }
+    showSpinner(); // Show spinner for saving action
+    try {
+        // Update the API endpoint to match your Node.js route for grading logbooks
+        // This assumes a PATCH or PUT endpoint like /api/logbooks/:logbookId/grade
+        const response = await fetch(`/api/admin/logbooks/${logbookId}/grade`, {
+            method: 'PATCH', // Or PUT, depending on your API design
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ grade: grade }),
+        });
+
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                sessionStorage.removeItem('currentUser');
+                throw new Error('Authentication/Authorization failed. Please log in again.');
+            }
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        hideSpinner();
+
+        // Update the local data for immediate UI reflection
+        const updatedReportIndex = logbookReports.findIndex(r => r.logbook_id === logbookId);
+        if (updatedReportIndex !== -1) {
+            logbookReports[updatedReportIndex].grade = grade;
+            currentGrades[logbookId] = grade; // Update local grade state
+            renderLogbookReports(logbookReports); // FIXED: Pass the reports array to re-render
+        }
+
+        // FIXED: Better success message with fallback
+        const reportDate = logbookReports.find(lb => lb.logbook_id === logbookId)?.week_date;
+        const dateMessage = reportDate ? formatDate(reportDate) : 'this report';
+        showModal("Success", result.message || `Grade for report on ${dateMessage} saved successfully!`);
+
+    } catch (error) {
+        hideSpinner();
+        console.error(`Error saving grade for logbook ${logbookId}:`, error);
+        showModal("Error", `Failed to save grade: ${error.message}`);
+    }
+}
+
+/**
+ * Renders the logbook reports in the table body.
+ * @param {Array} reports - The array of logbook reports for the current page.
+ */
+function renderLogbookReports(reports) {
+    const logbookTableBody = document.getElementById('logbookTableBody');
+    if (!logbookTableBody) return;
+
+    logbookTableBody.innerHTML = '';
+    reports.forEach(report => {
+        let reportsContent = '';
+        if (typeof report.reports === 'object' && report.reports !== null) {
+            const daysOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            const sortedDays = Object.keys(report.reports).sort((a, b) => {
+                const indexA = daysOrder.indexOf(a.toLowerCase());
+                const indexB = daysOrder.indexOf(b.toLowerCase());
+                return indexA - indexB;
+            });
+            reportsContent = sortedDays.map(day => {
+                if (report.reports[day]) {
+                    return `<strong>${day.charAt(0).toUpperCase() + day.slice(1)}:</strong> ${report.reports[day]}`;
+                }
+                return '';
+            }).filter(Boolean).join('<br>');
+        } else {
+            reportsContent = report.reports;
+        }
+
+        // --- Check if a grade already exists ---
+        const hasGrade = !!report.grade;
+
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50';
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                ${formatDate(report.week_date)}
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-700 max-w-xs">
+                <div class="line-clamp-2">${reportsContent}</div>
+                <button class="read-full-report text-blue-600 hover:text-blue-800 text-xs mt-1" data-report-id="${report.logbook_id}">
+                    Read Full Report
+                </button>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <textarea
+                    class="logbook-grade-input w-48 h-20 p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 resize-y"
+                    placeholder="Enter Grade or Feedback"
+                    data-logbook-id="${report.logbook_id}"
+                    ${hasGrade ? 'disabled' : ''}
+                >${report.grade || ''}</textarea>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button
+                    class="save-grade-button inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${hasGrade ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'} transition-colors duration-200"
+                    data-logbook-id="${report.logbook_id}"
+                    ${hasGrade ? 'disabled' : ''}
+                >
+                    Save Grade
+                </button>
+            </td>
+        `;
+        logbookTableBody.appendChild(row);
+
+        // --- Event listeners ---
+        const readFullButton = row.querySelector('.read-full-report');
+        if (readFullButton) {
+            readFullButton.addEventListener('click', () => {
+                showModal('Logbook Report', reportsContent);
+            });
+        }
+        
+        const gradeInput = row.querySelector(`.logbook-grade-input[data-logbook-id="${report.logbook_id}"]`);
+        if (gradeInput && !hasGrade) { // Only attach listener if not graded
+            currentGrades[report.logbook_id] = report.grade || '';
+            gradeInput.addEventListener('input', (e) => {
+                currentGrades[report.logbook_id] = e.target.value;
+            });
+        }
+
+        const saveButton = row.querySelector(`.save-grade-button[data-logbook-id="${report.logbook_id}"]`);
+        if (saveButton && !hasGrade) { // Only attach listener if not graded
+            saveButton.addEventListener('click', () => {
+                const gradeToSave = currentGrades[report.logbook_id];
+                saveGrade(report.logbook_id, gradeToSave);
+            });
+        }
+    });
+}
+            // Function to handle sidebar link activation
+function updateActiveLink(activeLink) {
+    // Get all sidebar links
+    const allLinks = document.querySelectorAll('aside nav a, aside .p-4 a');
+
+    // Remove active state from all links
+    allLinks.forEach(link => {
+        link.classList.remove('bg-gray-900', 'text-white');
+        link.classList.add('text-gray-300');
+    });
+
+    // Add active state to the clicked link
+    activeLink.classList.add('bg-gray-900', 'text-white');
+    activeLink.classList.remove('text-gray-300');
+}
+
+
+
+async function renderProjects(page = 1, limit = 10) {
+    setBreadcrumb('Projects');
+
+
+    mainContentArea.innerHTML = `
+        <div class="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-xl">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Uploaded Projects</h1>
+            <div id="projects-table-container" class="overflow-x-auto">
+                <p id="loading-projects" class="text-center text-gray-500 italic">Loading projects...</p>
+            </div>
+            <div id="projects-pagination-controls" class="flex justify-center mt-4 space-x-2"></div>
+        </div>
+    `;
+
+    const projectsTableContainer = document.getElementById('projects-table-container');
+    const projectsPaginationControls = document.getElementById('projects-pagination-controls');
+
+    try {
+        // Fetch paginated data from the updated backend route
+        const res = await fetch(`/api/admin/get-projects?page=${page}&limit=${limit}`);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+
+        document.getElementById('loading-projects').remove();
+
+        if (!data.success || data.projects.length === 0) {
+            projectsTableContainer.innerHTML = `
+                <div class="text-center p-8">
+                    <i data-lucide="folder-x" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
+                    <p class="text-gray-500 italic">No projects have been uploaded yet.</p>
+                </div>
+            `;
+            projectsPaginationControls.innerHTML = '';
+            return;
+        }
+
+        let tableHTML = `
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded At</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="projects-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+        `;
+        projectsTableContainer.innerHTML = tableHTML;
+
+        const tbody = document.getElementById("projects-tbody");
+
+        data.projects.forEach(project => {
+            const uploadedDate = new Date(project.uploaded_at).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'
+            });
+            const fileSizeInKB = (project.file_size / 1024).toFixed(2);
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${project.project_name}</td>
+                <td class="px-6 py-4 text-sm text-gray-500 max-w-xs"><div class="truncate-description">${project.description || 'N/A'}</div>
+                    ${(project.description && project.description.length > 50) ? `<button class="read-more-btn text-blue-600 hover:text-blue-800 text-xs mt-1" data-full-text="${project.description}">Read More</button>` : ''}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:underline cursor-pointer">${project.original_file_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${fileSizeInKB} KB</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${uploadedDate}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button class="delete-btn text-red-600 hover:text-red-900 transition-colors duration-200">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </td>
+            `;
+
+            tr.querySelector("td:nth-child(3)").addEventListener("click", () => downloadProject(project.id));
+            tr.querySelector(".delete-btn").addEventListener("click", () => confirmDeleteProject(project.id, project.project_name));
+
+             // Get the "Read More" button for the current row
+             const readMoreBtn = tr.querySelector('.read-more-btn');
+                 if (readMoreBtn) {
+                     readMoreBtn.addEventListener('click', () => {
+                     showModal('Project Description', `<p class="whitespace-pre-wrap">${project.description}</p>`);
+                    });
+                }
+
+            tbody.appendChild(tr);
+        });
+
+        // Render the pagination controls
+        renderPagination(projectsPaginationControls, data.current_page, data.total_pages, limit, renderProjects);
+
+        lucide.createIcons();
+
+    } catch (error) {
+        console.error('Error fetching projects:', error);
+        if(document.getElementById('loading-projects')){
+             document.getElementById('loading-projects').textContent = 'Failed to load projects. Please try again later.';
+        }
+        showModal('Error', 'Failed to fetch projects due to a server error.');
+    }
+}
+
+// Helper function to render pagination buttons (add this to your script)
+function renderPagination(container, currentPage, totalPages, limit, renderFunction) {
+    container.innerHTML = '';
+
+    // Previous Button
+    if (currentPage > 1) {
+        const prevButton = document.createElement('button');
+        prevButton.textContent = 'Previous';
+        prevButton.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+        prevButton.addEventListener('click', () => renderFunction(currentPage - 1, limit));
+        container.appendChild(prevButton);
+    }
+
+    // Page number buttons
+    for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.className = `px-4 py-2 border rounded-md ${i === currentPage ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`;
+        pageButton.addEventListener('click', () => renderFunction(i, limit));
+        container.appendChild(pageButton);
+    }
+
+    // Next Button
+    if (currentPage < totalPages) {
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Next';
+        nextButton.className = 'px-4 py-2 border rounded-md hover:bg-gray-200';
+        nextButton.addEventListener('click', () => renderFunction(currentPage + 1, limit));
+        container.appendChild(nextButton);
+    }
+}
+
+function confirmDeleteProject(projectId, projectName) {
+    showModal(
+        'Confirm Deletion',
+        `Are you sure you want to delete "<b>${projectName}</b>"?`,
+        null, null, false // disable default OK button
+    );
+
+    const footer = document.getElementById('modalFooter');
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = "Confirm Delete";
+    confirmBtn.className = "bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md";
+    confirmBtn.onclick = () => deleteProject(projectId);
+    footer.appendChild(confirmBtn);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.className = "ml-2 bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md";
+    cancelBtn.onclick = closeModal;
+    footer.appendChild(cancelBtn);
+}
+
+
+
+async function deleteProject(projectId) {
+   // showSpinner();
+    try {
+        const res = await fetch(`/api/admin/delete-project/${projectId}`, {
+            method: 'DELETE',
+        });
+        const data = await res.json();
+        hideSpinner();
+
+        if (res.ok) {
+            // ✅ Close modal only on success
+            closeModal();
+            showModal('Success', data.message, async () => {
+                await renderProjects();
+            });
+        } else {
+            throw new Error(data.message || 'Failed to delete project.');
+        }
+    } catch (error) {
+        hideSpinner();
+        console.error('Error deleting project:', error);
+        showModal('Error', error.message);
+    }
+}
+
+
+
+
+async function downloadProject(fileId) {
+    try {
+        const res = await fetch(`/api/admin/download-project/${fileId}`);
+        if (!res.ok) throw new Error("Failed to download project");
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "project_file"; // fallback, real filename is in header
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("Error downloading project file:", err);
+        showModal("Error", err.message);
+    }
+}
+
+
+     if (registerAdminLink) {
+                registerAdminLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                   if (currentUser.role !== 'superadmin') {
+                     showModal('Access Denied', 'Only superadmins can register new admins.');
+                    return;
+                        }
+
+                    console.log('Register Admin clicked!');
+                    setBreadcrumb('Register Admin');
+                    mainContentArea.innerHTML = `
+                    <div class="flex items-center justify-center p-6 min-h-full">
+    <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg">
+        <div class="text-center">
+            <h1 class="text-4xl font-extrabold text-gray-800 mb-2">Register New Admin</h1>
+            <p class="text-gray-500 mb-6">Create an account for an admin or superadmin.</p>
+        </div>
+        <form id="registerAdminForm" class="space-y-6">
+            <!-- Full Name -->
+            <div>
+                <label for="fullName" class="block text-sm font-medium text-gray-700">Full Name</label>
+                <input type="text" id="fullName" name="fullName" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                       placeholder="Daewis King">
+            </div>
+            <!-- Email -->
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                <input type="email" id="email" name="email" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                       placeholder="daewis.king@example.com">
+            </div>
+            <!-- Password -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" name="password" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                       placeholder="••••••••">
+            </div>
+            <!-- Role Selection -->
+            <div>
+                <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
+                <select id="role" name="role" required
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                    <option value="">-- Select a role --</option>
+                    <option value="admin">Admin</option>
+                    <option value="superadmin">Superadmin</option>
+                </select>
+            </div>
+            <!-- Submit Button -->
+            <button type="submit"
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                Register Admin
+            </button>
+        </form>
+    </div>
+</div>
+    `;
+
+      const registerAdminForm = document.getElementById('registerAdminForm');
+
+    // Make sure the form element exists before adding the event listener
+    if (registerAdminForm) {
+        registerAdminForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+
+            if (!fullName || !email || !password || !role) {
+                showModal('Validation Error', 'All fields are required.');
+                return;
+            }
+
+            const [firstName, ...lastNameParts] = fullName.split(' ');
+            const lastName = lastNameParts.join(' ');
+
+            const payload = {
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                password: password,
+                role: role
+            };
+
+            try {
+                const response = await fetch(`/api/admin/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showModal('Success', result.message || 'Admin registered successfully!');
+                    registerAdminForm.reset();
+                } else {
+                    showModal('Registration Failed', result.message || 'An error occurred during registration.');
+                }
+            } catch (error) {
+                console.error('Error during admin registration:', error);
+                showModal('Error', `Failed to register admin: ${error.message}`);
+            }
+        });
+    }
+
+                });
+            }
+
+
+            function renderMessagesView() {
+    setBreadcrumb('Messages');
+
+    mainContentArea.innerHTML = `
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Send Message to Interns</h2>
+            
+            <form id="messageForm" class="space-y-6">
+                <div>
+                    <label for="messageTitle" class="block text-sm font-medium text-gray-700">Title</label>
+                    <input type="text" id="messageTitle" required
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div>
+                    <label for="messageBody" class="block text-sm font-medium text-gray-700">Message</label>
+                    <textarea id="messageBody" rows="5" required
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm"></textarea>
+                </div>
+                <div>
+                    <label for="messageFile" class="block text-sm font-medium text-gray-700">Attach File</label>
+                    <input type="file" id="messageFile"
+                        class="mt-1 block w-full text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <button type="submit"
+                    class="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-md shadow-sm hover:bg-blue-700">
+                    Send Message
+                </button>
+            </form>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Message History</h3>
+            <div id="messagesHistory" class="space-y-4">
+                <p class="text-gray-500 text-sm">Loading messages...</p>
+            </div>
+        </div>
+    `;
+
+    const messageForm = document.getElementById('messageForm');
+  messageForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append('action', 'broadcast_message');   // required by backend
+    formData.append('title', document.getElementById('messageTitle').value);
+    formData.append('body', document.getElementById('messageBody').value);
+
+    const fileInput = document.getElementById('messageFile');
+    if (fileInput.files.length > 0) {
+        formData.append('file', fileInput.files[0]);  // optional
+    }
+
+    try {
+        const response = await fetch(`/api/admin/send-notification`, {
+            method: 'POST',
+            body: formData   // ✅ sends as multipart/form-data
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showModal('Success', result.message || 'Message sent successfully!');
+            messageForm.reset();
+            loadMessagesHistory();
+        } else {
+            showModal('Error', result.message || 'Failed to send message.');
+        }
+    } catch (error) {
+        showModal('Error', `Failed to send message: ${error.message}`);
+    }
+});
+
+    loadMessagesHistory();
+}
+
+async function loadMessagesHistory() {
+    const historyContainer = document.getElementById('messagesHistory');
+    if (!historyContainer) return;
+
+    try {
+        const response = await fetch(`/api/admin/messages`);
+        const result = await response.json();
+
+        if (response.ok && result.messages.length > 0) {
+            historyContainer.innerHTML = result.messages.map(msg => {
+                let filePreview = '';
+                if (msg.file_url) {
+                    if (msg.file_url.startsWith('data:image')) {
+                        // Inline image
+                        filePreview = `<img src="${msg.file_url}" alt="Attachment" class="mt-2 max-h-48 rounded border">`;
+                    } else if (msg.file_url.startsWith('data:application/pdf')) {
+                        // Inline PDF preview
+                        filePreview = `<embed src="${msg.file_url}" type="application/pdf" class="mt-2 w-full h-64 border rounded"/>`;
+                    } else {
+                        // Fallback download link
+                        filePreview = `<a href="${msg.file_url}" download class="text-blue-600 hover:underline text-sm">Download Attachment</a>`;
+                    }
+                }
+
+                return `
+                    <div class="border border-gray-200 rounded-md p-4 shadow-sm relative">
+                        <h4 class="text-lg font-semibold text-gray-800">${msg.title}</h4>
+                        <p class="text-sm text-gray-600 mb-2">${msg.body}</p>
+                        ${filePreview}
+                        <div class="mt-2 text-xs text-gray-400">Sent: ${new Date(msg.created_at).toLocaleString()}</div>
+                        <button class="absolute top-2 right-2 text-red-500 hover:text-red-700 delete-message-btn" data-id="${msg.id}">
+                            ✖
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            // Attach delete listeners
+            document.querySelectorAll('.delete-message-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const messageId = e.currentTarget.dataset.id;
+                    if (!confirm('Are you sure you want to delete this message?')) return;
+
+                    try {
+                        const response = await fetch(`/api/admin/messages/${messageId}`, {
+                            method: 'DELETE'
+                        });
+                        const result = await response.json();
+                        if (response.ok) {
+                            showModal('Deleted', result.message || 'Message deleted successfully.');
+                            loadMessagesHistory();
+                        } else {
+                            showModal('Error', result.message || 'Failed to delete message.');
+                        }
+                    } catch (error) {
+                        showModal('Error', `Failed to delete message: ${error.message}`);
+                    }
+                });
+            });
+        } else {
+            historyContainer.innerHTML = `<p class="text-gray-500 text-sm">No messages found.</p>`;
+        }
+    } catch (error) {
+        historyContainer.innerHTML = `<p class="text-red-500 text-sm">Error: ${error.message}</p>`;
+    }
+}
+
+
+// Render Pending Users Management
+async function renderPendingUsers(page = 1, limit = 10) {
+    setBreadcrumb('Pending Users');
+    
+    mainContentArea.innerHTML = `
+        <div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-xl">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Pending User Approvals</h1>
+            <p class="text-gray-600 mb-6">Review and approve new user registrations</p>
+            
+            <div id="pending-users-container" class="overflow-x-auto">
+                <p id="loading-pending-users" class="text-center text-gray-500 italic">Loading pending users...</p>
+            </div>
+            <div id="pending-users-pagination" class="flex justify-center mt-4 space-x-2"></div>
+        </div>
+    `;
+
+    const container = document.getElementById('pending-users-container');
+    const pagination = document.getElementById('pending-users-pagination');
+
+    try {
+        const response = await authenticatedFetch(`/api/admin/pending-users?page=${page}&limit=${limit}`, {
+            method: 'GET'
+        });
+        
+        if (!response) return;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error('Failed to fetch pending users');
+        }
+
+        const data = await response.json();
+        document.getElementById('loading-pending-users').remove();
+
+        if (!data.users || data.users.length === 0) {
+            container.innerHTML = `
+                <div class="text-center p-8">
+                    <i data-lucide="users" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
+                    <p class="text-gray-500 text-lg">No pending user approvals</p>
+                    <p class="text-gray-400 text-sm mt-2">All users have been processed</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Create table
+        container.innerHTML = `
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Info</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pending-users-tbody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+        `;
+
+        const tbody = document.getElementById('pending-users-tbody');
+        
+        data.users.forEach(user => {
+            const registrationDate = new Date(user.created_at).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric'
+            });
+            
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                <span class="text-sm font-medium text-gray-600">
+                                    ${(user.first_name?.[0] || 'U')}${(user.last_name?.[0] || '')}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                ${user.first_name || ''} ${user.last_name || ''}
+                            </div>
+                            <div class="text-sm text-gray-500">${user.email}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${registrationDate}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        Pending
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex justify-end space-x-2">
+                        <button class="approve-user-btn bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-200"
+                                data-user-id="${user.user_id}" data-user-name="${user.first_name} ${user.last_name}">
+                            <i data-lucide="check" class="w-4 h-4 inline mr-1"></i>
+                            Approve
+                        </button>
+                        <button class="reject-user-btn bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-200"
+                                data-user-id="${user.user_id}" data-user-name="${user.first_name} ${user.last_name}">
+                            <i data-lucide="x" class="w-4 h-4 inline mr-1"></i>
+                            Reject
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Add event listeners
+        document.querySelectorAll('.approve-user-btn').forEach(btn => {
+            btn.addEventListener('click', handleUserApproval);
+        });
+
+        document.querySelectorAll('.reject-user-btn').forEach(btn => {
+            btn.addEventListener('click', handleUserRejection);
+        });
+
+        // Render pagination if needed
+        if (data.total_pages > 1) {
+            renderPagination(pagination, data.current_page, data.total_pages, limit, renderPendingUsers);
+        }
+
+        lucide.createIcons();
+
+    } catch (error) {
+        console.error('Error fetching pending users:', error);
+        document.getElementById('loading-pending-users').textContent = 'Failed to load pending users';
+        showModal('Error', 'Failed to load pending users: ' + error.message);
+    }
+}
+
+// Handle user approval
+async function handleUserApproval(e) {
+    const userId = e.currentTarget.dataset.userId;
+    const userName = e.currentTarget.dataset.userName;
+    
+    showModal(
+        'Confirm Approval',
+        `Are you sure you want to approve <strong>${userName}</strong>?<br><br>They will be able to log in and access the system.`,
+        async () => {
+            try {
+                showSpinner();
+                const response = await fetch(`/api/admin/approve-user/${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                hideSpinner();
+                
+                if (response.ok) {
+                    showModal('Success', `${userName} has been approved successfully!`, () => {
+                        renderPendingUsers(); // Refresh the list
+                    });
+                } else {
+                    showModal('Error', result.message || 'Failed to approve user');
+                }
+            } catch (error) {
+                hideSpinner();
+                console.error('Error approving user:', error);
+                showModal('Error', 'Failed to approve user: ' + error.message);
+            }
+        },
+        null,
+        false
+    );
+
+    // Add custom buttons
+    const footer = document.getElementById('modalFooter');
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = 'Approve User';
+    confirmBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md';
+    confirmBtn.onclick = async () => {
+        try {
+            showSpinner();
+            const response = await fetch(`/api/admin/approve-user/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const result = await response.json();
+            hideSpinner();
+            closeModal();
+            
+            if (response.ok) {
+                showModal('Success', `${userName} has been approved successfully!`, () => {
+                    renderPendingUsers(); // Refresh the list
+                });
+            } else {
+                showModal('Error', result.message || 'Failed to approve user');
+            }
+        } catch (error) {
+            hideSpinner();
+            closeModal();
+            console.error('Error approving user:', error);
+            showModal('Error', 'Failed to approve user: ' + error.message);
+        }
+    };
+    footer.appendChild(confirmBtn);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md ml-2';
+    cancelBtn.onclick = closeModal;
+    footer.appendChild(cancelBtn);
+}
+
+// Handle user rejection
+async function handleUserRejection(e) {
+    const userId = e.currentTarget.dataset.userId;
+    const userName = e.currentTarget.dataset.userName;
+    
+    showModal(
+        'Reject User Registration',
+        `
+        <div class="text-left">
+            <p class="mb-4">Are you sure you want to reject <strong>${userName}</strong>?</p>
+            <div class="mb-4">
+                <label for="rejection-reason" class="block text-sm font-medium text-gray-700 mb-2">Reason for rejection (optional):</label>
+                <textarea id="rejection-reason" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                         placeholder="e.g., Invalid email domain, suspicious registration..."></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <input type="checkbox" id="delete-user" class="mr-2">
+                    <span class="text-sm">Permanently delete user (cannot be undone)</span>
+                </label>
+            </div>
+        </div>
+        `,
+        null,
+        null,
+        false
+    );
+
+    const footer = document.getElementById('modalFooter');
+    
+    const rejectBtn = document.createElement('button');
+    rejectBtn.textContent = 'Reject User';
+    rejectBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md';
+    rejectBtn.onclick = async () => {
+        const reason = document.getElementById('rejection-reason').value;
+        const deleteUser = document.getElementById('delete-user').checked;
+        
+        try {
+            showSpinner();
+            const response = await fetch(`/api/admin/reject-user/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason, deleteUser })
+            });
+            
+            const result = await response.json();
+            hideSpinner();
+            closeModal();
+            
+            if (response.ok) {
+                showModal('Success', `${userName} has been rejected successfully!`, () => {
+                    renderPendingUsers(); // Refresh the list
+                });
+            } else {
+                showModal('Error', result.message || 'Failed to reject user');
+            }
+        } catch (error) {
+            hideSpinner();
+            closeModal();
+            console.error('Error rejecting user:', error);
+            showModal('Error', 'Failed to reject user: ' + error.message);
+        }
+    };
+    footer.appendChild(rejectBtn);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md ml-2';
+    cancelBtn.onclick = closeModal;
+    footer.appendChild(cancelBtn);
+}
+
+
+// Render Accounts Management
+// Sidebar link for Accounts Management
+if (accountsManagementLink) {
+    accountsManagementLink.addEventListener('click', (event) => {
+        event.preventDefault();
+
+        // Only superadmins can manage accounts
+        if (currentUser.role !== 'superadmin') {
+            showModal('Access Denied', 'Only superadmins can manage intern accounts.');
+            return;
+        }
+
+        console.log('Accounts Management clicked!');
+        renderAccountsManagement();
+    });
+}
+
+// Render Accounts Management
+async function renderAccountsManagement(page = 1, limit = 10) {
+    setBreadcrumb('Accounts');
+
+    mainContentArea.innerHTML = `
+        <div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-xl">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Manage Intern Accounts</h1>
+            <p class="text-gray-600 mb-6">Enable or disable intern accounts</p>
+
+            <div id="accounts-container" class="overflow-x-auto">
+                <p id="loading-accounts" class="text-center text-gray-500 italic">Loading accounts...</p>
+            </div>
+            <div id="accounts-pagination" class="flex justify-center mt-4 space-x-2"></div>
+        </div>
+    `;
+
+    const container = document.getElementById('accounts-container');
+    const pagination = document.getElementById('accounts-pagination');
+
+    try {
+        const response = await authenticatedFetch(`/api/superadmin/accounts?page=${page}&limit=${limit}`, {
+            method: 'GET'
+        });
+
+        if (!response) return;
+        if (!response.ok) {
+            throw new Error('Failed to fetch accounts');
+        }
+
+        const data = await response.json();
+        document.getElementById('loading-accounts').remove();
+
+        if (!data.users || data.users.length === 0) {
+            container.innerHTML = `
+                <div class="text-center p-8">
+                    <i data-lucide="users" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
+                    <p class="text-gray-500 text-lg">No accounts found</p>
+                    <p class="text-gray-400 text-sm mt-2">All intern accounts are up to date</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Create table
+        container.innerHTML = `
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Intern Info</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="accounts-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+        `;
+
+        const tbody = document.getElementById('accounts-tbody');
+
+        data.users.forEach(user => {
+            const isDisabled = !!user.is_disabled;
+            const row = document.createElement('tr');
+            row.className = isDisabled ? 'bg-gray-50 opacity-90' : 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${user.first_name || ''} ${user.last_name || ''}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${user.email || ''}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    ${
+                        isDisabled
+                            ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Disabled</span>`
+                            : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>`
+                    }
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button 
+                        class="toggle-account-btn ${
+                            isDisabled ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                        } text-white px-4 py-2 rounded-md text-sm transition-colors duration-200"
+                        data-user-id="${user.user_id}"
+                        data-user-name="${(user.first_name || '') + ' ' + (user.last_name || '')}"
+                        data-action="${isDisabled ? 'enable' : 'disable'}"
+                    >
+                        ${isDisabled ? 'Enable' : 'Disable'}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Event listeners for Enable/Disable
+        document.querySelectorAll('.toggle-account-btn').forEach(btn => {
+            btn.addEventListener('click', handleToggleAccount);
+        });
+
+        // Pagination (your renderPagination helper)
+        if (data.total_pages > 1) {
+            renderPagination(pagination, data.current_page, data.total_pages, limit, renderAccountsManagement);
+        }
+
+        lucide.createIcons();
+    } catch (error) {
+        console.error('Error fetching accounts:', error);
+        const loadingEl = document.getElementById('loading-accounts');
+        if (loadingEl) loadingEl.textContent = 'Failed to load accounts';
+        showModal('Error', 'Failed to load accounts: ' + error.message);
+    }
+}
+
+
+let confirmResolve;
+
+// Show confirm modal with custom message (message may include HTML)
+function showConfirmModal(title, message) {
+    return new Promise((resolve) => {
+        confirmResolve = resolve;
+        const titleEl = document.getElementById('confirmModalTitle');
+        const messageEl = document.getElementById('confirmModalMessage');
+        titleEl.textContent = title;
+        // NOTE: using innerHTML here to allow <b>name</b> markup. Avoid untrusted user content.
+        messageEl.innerHTML = message;
+
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.querySelector('div').classList.remove('scale-95');
+            modal.querySelector('div').classList.add('scale-100');
+        }, 10);
+    });
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById('confirmModal');
+    modal.querySelector('div').classList.remove('scale-100');
+    modal.querySelector('div').classList.add('scale-95');
+
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 150);
+}
+
+// Ensure these addEventListener calls run once on script load (check elements exist)
+const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+const confirmOkBtn = document.getElementById('confirmOkBtn');
+if (confirmCancelBtn && confirmOkBtn) {
+    confirmCancelBtn.addEventListener('click', () => {
+        closeConfirmModal();
+        if (typeof confirmResolve === 'function') confirmResolve(false);
+    });
+    confirmOkBtn.addEventListener('click', () => {
+        closeConfirmModal();
+        if (typeof confirmResolve === 'function') confirmResolve(true);
+    });
+}
+
+
+async function handleToggleAccount(event) {
+    const btn = event.currentTarget;
+    const userId = btn.dataset.userId;
+    const userName = btn.dataset.userName;
+    const action = btn.dataset.action; // "disable" or "enable"
+
+    const confirmed = await showConfirmModal(
+        "Confirm Account Action",
+        `Are you sure you want to ${action} <b>${userName}</b>'s account?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const response = await authenticatedFetch(`/api/superadmin/accounts/${userId}/${action}`, {
+            method: 'PUT'
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || `Failed to ${action} account`);
+        }
+
+        const result = await response.json();
+        showModal('Success', `${userName}'s account has been ${action}d successfully.`);
+        renderAccountsManagement(); // Refresh list
+    } catch (error) {
+        console.error(`Error ${action} account:`, error);
+        showModal('Error', `Failed to ${action} account: ${error.message}`);
+    }
+}
+
+            // --- Sidebar Navigation Event Listeners ---
+            viewInternsLink.addEventListener('click', (event) => {
+                event.preventDefault();
+                loadInternsList();
+            });
+
+            viewLogbookLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                if (!isAdminOrSuperadmin) {
+                    mainContentArea.innerHTML = `
+                        <div class="border border-red-300 bg-red-50 text-red-700 rounded-lg p-6 h-full flex items-center justify-center text-xl">
+                            Access Denied: Admin privileges required to view logbook reports.
+                        </div>
+                    `;
+                    return;
+                }
+                renderLogbookViewSection(); 
+                fetchInternsForLogbookViewer(); 
+            });
+
+            // --- Event Listeners for Sidebar Navigation ---
+            viewComplaintsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                renderComplaintsAndSuggestionsView();
+            });
+
+           messageLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                renderMessagesView();
+            });
+
+            // Add this new event listener to the existing JavaScript block
+            const viewProjectLink = document.getElementById('viewProjectLink');
+
+            viewProjectLink.addEventListener('click', async (e) => {
+              e.preventDefault();
+            updateActiveLink(viewProjectLink); 
+             showSpinner();
+            await renderProjects();
+             hideSpinner();
+            });
+
+            // Add event listener for pending users link
+            document.getElementById('pendingUsersLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            renderPendingUsers();
+            });
+
+            
+            // Load interns list by default for admins and superadmins
+            if (isAdminOrSuperadmin) {
+        renderDashboard();
+    } else {
+        mainContentArea.innerHTML = `
+            <div class="border border-dashed border-gray-300 rounded-lg p-6 h-full flex items-center justify-center text-gray-400 text-xl">
+                Access Denied: Admin privileges required.
+            </div>
+        `;
+    }
+});
+        
+  

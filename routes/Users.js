@@ -1,11 +1,8 @@
-
-// This is a corrected example of a user registration route using ESM syntax.
-// It assumes you have already imported express, a PostgreSQL pool, and other necessary libraries.
 import express from 'express';
 import pool from '../db.js';
 import multer from 'multer';
 import bcrypt from 'bcrypt';           
-import { getWeekNumber } from '../dateUtils.js'; // Assuming this utility is available
+import { getWeekNumber } from '../dateUtils.js'; 
 import { createNotification } from '../utils/notifications.js';
 
 
@@ -22,7 +19,7 @@ const upload = multer({ storage: storage });
  * If a user is not found, it sends a 401 Unauthorized response.
  */
 const isAuthenticated = (req, res, next) => {
-    if (req.session && req.session.user) { // Check req.session exists and contains user data
+    if (req.session && req.session.user) { 
         next();
     } else {
         res.status(401).json({ message: 'Unauthorized. Please log in.' });
@@ -96,7 +93,7 @@ async function sendNotificationToAdmin(action, userId, data) {
     });
     }
 
-    console.log(`✅ Notification sent to ${adminResult.rows.length} admin(s)`);
+    console.log(`Notification sent to ${adminResult.rows.length} admin(s)`);
   } catch (error) {
     console.error('Error sending notification to admin:', error);
   }
@@ -173,12 +170,10 @@ router.post('/submit-logbook-report', upload.single('fileAttachment'), async (re
         const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
         const currentHour = now.getHours();
         
-        if (dayOfWeek === 1 && currentHour >= 9) {
+        if (dayOfWeek === 2 && currentHour >= 12) {
             return res.status(403).json({ success: false, message: 'Reports can only be submitted before 9:00 AM on Monday.' });
         }
-        // --- END OF NEW VALIDATION ---
-        
-        // Parse reports safely (ensure it's JSON)
+       
         let parsedReports;
         try {
             parsedReports = JSON.parse(reports);
@@ -194,7 +189,7 @@ router.post('/submit-logbook-report', upload.single('fileAttachment'), async (re
         const fileMime = file ? file.mimetype : null;
 
         // Prevent duplicate submissions for same week
-        const weekNumber = new Date(weekDate).getWeek?.() || null; // fallback if needed
+        const weekNumber = new Date(weekDate).getWeek?.() || null; 
         const yearNumber = new Date(weekDate).getFullYear();
 
         const duplicateCheck = await client.query(

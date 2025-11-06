@@ -1,25 +1,11 @@
 // public/script.js
 
-// IMPORTANT: The import below might cause issues if '@tailwindplus/elements' is
-// not properly configured as an ES module for direct browser use or if
-// you're not using a module bundler. Consider loading it via a <script> tag in HTML if problematic.
-// import '@tailwindplus/elements'; // Commenting out to prevent potential client-side module errors
-
-console.log('Main page script running!'); // Consolidated log message
-
-// Optional: Lucide Icons initialization (if you keep lucide script in head)
-// Add null check to prevent errors if lucide is not loaded
 if (typeof lucide !== 'undefined' && lucide) {
     lucide.createIcons();
 }
 
-
-
-
-// --- Global variable for modal redirect URL ---
-// --- Global variable for modal redirect URL ---
 let modalRedirectTarget = null;
-let modalCallback = null; // New: store callback
+let modalCallback = null; 
 
 // --- Custom Modal Functions ---
 function showModal(title, message, redirectUrl = null, callback = null) {
@@ -30,7 +16,6 @@ function showModal(title, message, redirectUrl = null, callback = null) {
     // Check if modal elements exist before trying to use them
     if (!modalTitle || !modalMessage || !customModal) {
         console.warn('Modal elements not found on this page');
-        // Fallback to alert for pages without modal
         alert(`${title}: ${message}`);
         if (redirectUrl) {
             window.location.href = redirectUrl;
@@ -43,10 +28,10 @@ function showModal(title, message, redirectUrl = null, callback = null) {
     
     modalTitle.textContent = title;
     modalMessage.textContent = message;
-    modalRedirectTarget = redirectUrl;   // Store the redirect URL
-    modalCallback = callback;            // Store callback
+    modalRedirectTarget = redirectUrl;   
+    modalCallback = callback;            
     
-    customModal.style.display = 'flex';  // Show modal
+    customModal.style.display = 'flex';  
 }
 
 function closeModal() {
@@ -64,7 +49,7 @@ function closeModal() {
     // Handle callback
     if (modalCallback && typeof modalCallback === "function") {
         modalCallback();
-        modalCallback = null; // clear after use
+        modalCallback = null; 
     }
 }
 
@@ -84,11 +69,6 @@ function togglePasswordVisibility(input, openIcon, closedIcon) {
     }
 }
 
-
-//const BACKEND_API_URL = 'http://localhost:4000';
-
-// --- Logic for Sign_in.html form ---
-// Get elements at a global scope to be accessible for all listeners
 const signInForm = document.getElementById('signin-form');
 const customModal = document.getElementById('customModal');
 const signInPasswordInput = document.getElementById('passwords');
@@ -341,7 +321,7 @@ document.getElementById('acceptance-letter-input')?.addEventListener('change', f
                     loaderOverlay.classList.add("hidden");
                     showModal('Registration Successful', 
                         'Your account has been created and is pending admin approval. You will be notified via email once approved.',
-                        '/pending_approval.html' // Fixed: Use string instead of function call
+                        '/pending_approval.html' 
                     );
                 } else {
                     loaderOverlay.classList.add("hidden");

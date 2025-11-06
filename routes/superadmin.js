@@ -16,7 +16,7 @@ function isSuperadmin(req, res, next) {
 
 // Superadmin registers a new Admin
 router.post('/register-admin', isSuperadmin, async (req, res) => {
-    const { email, password, first_name, last_name, role = 'admin' } = req.body; // Default role to 'admin'
+    const { email, password, first_name, last_name, role = 'admin' } = req.body; 
 
     // Basic validation
     if (!email || !password || !first_name || !last_name) {

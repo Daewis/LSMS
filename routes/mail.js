@@ -26,7 +26,7 @@ router.post('/contact', async (req, res) => {
     
     await transporter.sendMail({
       from: `"Website Contact" <${process.env.EMAIL_USER}>`,
-      to: 'lasuedsms@gmail.com', // where you receive the mail
+      to: 'lasuedsms@gmail.com', 
       subject: `New message from ${name}`,
       text: `From: ${name} <${email}>\n\n${message}`
     });

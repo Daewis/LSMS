@@ -28,7 +28,7 @@ function isAuthenticated(req, res, next) {
 function isAdminOrSuperadmin(req, res, next) {
     const userRole = req.session?.user?.role;
     if (userRole === 'admin' || userRole === 'superadmin') {
-        next(); // User has sufficient privileges
+        next(); 
     } else {
         res.status(403).json({ success: false, message: 'Access denied: Admin privileges required.' });
     }
@@ -343,35 +343,8 @@ router.get('/images/:matricNumber/:imageType', isAuthenticated, isAdminOrSuperad
 });
 
 
-// Example: Get attendance records for a specific date (renamed route)
-router.get('/attendance-records/:date', isAuthenticated, isAdminOrSuperadmin, async (req, res) => {
-    const { date } = req.params; // Expects date in YYYY-MM-DD format
-
-    let client;
-    try {
-        client = await pool.connect();
-        // Assuming 'attendance' and 'users' tables
-        const result = await client.query(
-            `SELECT a.attendance_id, u.first_name, u.last_name, u.matric_number, a.check_in_time, a.check_out_time
-             FROM attendance a
-             JOIN users u ON a.user_id = u.id -- Adjust 'user_id' and 'id' as per your schema
-             WHERE DATE(a.check_in_time) = $1`, // Assuming check_in_time stores date
-            [date]
-        );
-        res.json({ success: true, attendance: result.rows });
-    } catch (err) {
-        console.error('Error fetching attendance:', err);
-        res.status(500).json({ success: false, message: 'Internal server error fetching attendance.' });
-    } finally {
-        if (client) {
-            client.release();
-        }
-    }
-});
 
 
-
-// --- New Route 1: GET /api/admin/interns/:userId/logbooks ---
 // Fetches paginated logbook reports for a specific intern, accessible by admin/superadmin
 router.get('/interns/:userId/logbooks', isAuthenticated, isAdminOrSuperadmin, async (req, res) => {
     const { userId } = req.params;
@@ -1446,7 +1419,11 @@ router.delete('/reject-user/:userId', isAdminOrSuperadmin, async (req, res) => {
 
         if (deleteUser) {
             // Permanently delete the user
+
+
             await client.query('DELETE FROM users WHERE user_id = $1', [userId]);
+
+
         } else {
             // Mark as rejected but keep the record
             await client.query(`
